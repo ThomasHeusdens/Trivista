@@ -104,7 +104,7 @@ export async function register(
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     if (name) {
-      await updateProfile(userCredential.user, { displayName: name });
+      await updateProfile(userCredential.user, { displayName: name, photoURL: "onboarding-incomplete" });
     }
     return { user: userCredential.user };
   } catch (e) {

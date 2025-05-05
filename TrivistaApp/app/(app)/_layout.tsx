@@ -15,6 +15,10 @@ import { useSession } from "@/context";
 export default function AppLayout() {
   const { user, isLoading } = useSession();
 
+  console.log("🔍 User:", user);
+  console.log("🔍 IsLoading:", isLoading);
+  console.log("🔍 is onboarding complete:", user?.photoURL);
+
   if (isLoading) {
     return <Text>Loading...</Text>;
   }
@@ -22,6 +26,13 @@ export default function AppLayout() {
   if (!user) {
     return <Redirect href="/sign-in" />;
   }
+  
+  if (user?.photoURL !== "onboarding-complete") {
+    console.log("⛔️ User has not completed onboarding");
+    return <Redirect href="/onboarding" />;
+  }
+  
+  console.log("✅ All good, rendering app");
 
   return <Slot />;
 }

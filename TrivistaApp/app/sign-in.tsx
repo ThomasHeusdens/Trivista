@@ -42,7 +42,7 @@ export default function SignIn() {
 
       {/* Toggle: Login / Register */}
       <View className="flex-row justify-between mb-9 w-[80%]">
-        <View className="bg-white/20 rounded-[10px] px-6 py-5 w-[45%] items-center">
+        <View className="bg-white/30 backdrop-blur-[20px] rounded-[10px] px-6 py-5 w-[45%] items-center">
           <Text
             className="text-white font-[Bison]"
             style={{
@@ -73,7 +73,7 @@ export default function SignIn() {
 
       {/* Input Fields */}
       <View className="w-[80%] mb-9 space-y-4">
-        <BlurView intensity={60} tint="dark" className="rounded-[10px] overflow-hidden border border-white mb-4">
+        <View className="rounded-[10px] overflow-hidden border border-white mb-4">
           <TextInput
             placeholder="Email"
             placeholderTextColor="#ccc"
@@ -83,9 +83,9 @@ export default function SignIn() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-        </BlurView>
+        </View>
 
-        <BlurView intensity={60} tint="dark" className="rounded-[10px] overflow-hidden border border-white">
+        <View className="rounded-[10px] overflow-hidden border border-white">
           <TextInput
             placeholder="Password"
             placeholderTextColor="#ccc"
@@ -94,7 +94,7 @@ export default function SignIn() {
             secureTextEntry
             className="text-white px-4 py-3"
           />
-        </BlurView>
+        </View>
       </View>
 
       {/* Sign In Button */}
