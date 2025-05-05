@@ -1,0 +1,117 @@
+import { ImageBackground, Image, Pressable, Text, TextInput, View } from "react-native";
+import { useState } from "react";
+import { useSession } from "@/context";
+import { router } from "expo-router";
+import { BlurView } from "expo-blur";
+
+export default function SignIn() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const { signIn } = useSession();
+
+  const handleLogin = async () => {
+    try {
+      return await signIn(email, password);
+    } catch (err) {
+      console.log("[handleLogin] ==>", err);
+      return null;
+    }
+  };
+
+  const handleSignInPress = async () => {
+    const resp = await handleLogin();
+    router.replace("/(app)/(drawer)/(tabs)/");
+  };
+
+  return (
+    <ImageBackground
+      source={require("@/assets/images/background.png")}
+      style={{ flex: 1 }}
+      resizeMode="cover"
+      className="justify-center items-center"
+    >
+      {/* Welcome Text */}
+      <Text className="text-white text-3xl mb-9 font-[InterBold]">Welcome Back!</Text>
+
+      {/* Logo */}
+      <Image
+        source={require("@/assets/images/logo.png")}
+        className="w-40 h-40 mb-9"
+        resizeMode="contain"
+      />
+
+      {/* Toggle: Login / Register */}
+      <View className="flex-row justify-between mb-9 w-[80%]">
+        <View className="bg-white/20 rounded-[10px] px-6 py-5 w-[45%] items-center">
+          <Text
+            className="text-white font-[Bison]"
+            style={{
+              letterSpacing: 1.5,
+              fontSize: 20,
+            }}
+          >
+            LOG IN
+          </Text>
+        </View>
+
+        <Pressable
+          onPress={() => router.replace("/sign-up")}
+          className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[45%] items-center"
+        >
+          <Text
+            className="text-[#1E1E1E] font-[Bison]"
+            style={{
+              letterSpacing: 1.5,
+              fontSize: 20,
+            }}
+          >
+            REGISTER
+          </Text>
+        </Pressable>
+      </View>
+
+
+      {/* Input Fields */}
+      <View className="w-[80%] mb-9 space-y-4">
+        <BlurView intensity={60} tint="dark" className="rounded-[10px] overflow-hidden border border-white mb-4">
+          <TextInput
+            placeholder="Email"
+            placeholderTextColor="#ccc"
+            value={email}
+            onChangeText={setEmail}
+            className="text-white px-4 py-3"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </BlurView>
+
+        <BlurView intensity={60} tint="dark" className="rounded-[10px] overflow-hidden border border-white">
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#ccc"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            className="text-white px-4 py-3"
+          />
+        </BlurView>
+      </View>
+
+      {/* Sign In Button */}
+      <Pressable
+        onPress={handleSignInPress}
+        className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]"
+      >
+        <Text
+          className="text-center text-black text-base font-semibold font-[Bison]"
+          style={{
+            letterSpacing: 1.5,
+            fontSize: 20,
+          }}
+        >
+          GET STARTED
+        </Text>
+      </Pressable>
+    </ImageBackground>
+  );
+}
