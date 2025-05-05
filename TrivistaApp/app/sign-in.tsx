@@ -31,7 +31,7 @@ export default function SignIn() {
       className="justify-center items-center"
     >
       {/* Welcome Text */}
-      <Text className="text-white text-3xl mb-9 font-[InterBold]">Welcome Trivister!</Text>
+      <Text className="text-white text-3xl mb-9 font-[InterBold]">Welcome Back!</Text>
 
       {/* Logo */}
       <Image
