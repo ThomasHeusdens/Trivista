@@ -22,6 +22,7 @@ export default function Root() {
   const [fontsLoaded] = useFonts({
       Bison: require("@/assets/fonts/bison.ttf"),
       InterBold: require("@/assets/fonts/Inter_24pt-Bold.ttf"),
+      InterRegular: require("@/assets/fonts/Inter_24pt-Regular.ttf"),
     });
   
     useEffect(() => {

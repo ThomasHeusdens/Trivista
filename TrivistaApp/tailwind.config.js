@@ -7,7 +7,7 @@ module.exports = {
     extend: {
       fontFamily: {
         bison: ["Bison"],
-        inter: ["InterBold"],
+        inter: ["InterBold", "InterRegular"],
       },
     },
 },

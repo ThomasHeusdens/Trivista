@@ -42,7 +42,7 @@ export default function SignIn() {
 
       {/* Toggle: Login / Register */}
       <View className="flex-row justify-between mb-9 w-[80%]">
-        <View className="bg-white/30 backdrop-blur-[20px] rounded-[10px] px-6 py-5 w-[45%] items-center">
+        <View className="bg-white/30 rounded-[10px] px-6 py-5 w-[45%] items-center">
           <Text
             className="text-white font-[Bison]"
             style={{
