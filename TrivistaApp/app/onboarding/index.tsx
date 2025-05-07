@@ -1,6 +1,19 @@
+/**
+ * Onboarding Step 1
+ *
+ * Introduction screen that explains the purpose of the onboarding flow
+ * and prepares the user to provide personal data.
+ */
 import { Text, Pressable, ImageBackground, View, Image } from "react-native";
 import { router } from "expo-router";
 
+/**
+ * Onboarding1()
+ *
+ * Displays the first onboarding page with introductory text and a "Next" button.
+ *
+ * @returns {JSX.Element} First onboarding screen
+ */
 export default function Onboarding1() {
 
   return (

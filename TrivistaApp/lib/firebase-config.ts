@@ -5,13 +5,8 @@
  */
 import { initializeApp } from "firebase/app";
 
-// IGNORE IMPORT ERROR, this is a valid import, still investigating
 import { initializeAuth, getReactNativePersistence } from "firebase/auth";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
-
-// ============================================================================
-// Configuration
-// ============================================================================
 
 /**
  * Firebase configuration object containing necessary credentials and endpoints
@@ -25,10 +20,6 @@ const firebaseConfig = {
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
-
-// ============================================================================
-// Firebase Initialization
-// ============================================================================
 
 /**
  * Initialize Firebase application instance

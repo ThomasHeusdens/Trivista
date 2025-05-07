@@ -1,3 +1,8 @@
+/**
+ * Onboarding Step 2
+ *
+ * Collects basic user info (age, height, weight, gender, goal) and stores calculated nutrition needs in Firestore.
+ */
 import { Text, Pressable, ImageBackground, View, TextInput, Alert, ActivityIndicator } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { router } from "expo-router";
@@ -6,6 +11,13 @@ import { doc, setDoc } from "firebase/firestore";
 import { auth } from "@/lib/firebase-config";
 import { db } from "@/lib/firebase-db"; 
 
+/**
+ * Onboarding2()
+ *
+ * Displays a form to gather body composition details and calculates calorie/macro needs.
+ *
+ * @returns {JSX.Element} Step 2 onboarding screen
+ */
 export default function Onboarding2() {
   const [age, setAge] = useState("");
   const [height, setHeight] = useState("");
@@ -14,8 +26,19 @@ export default function Onboarding2() {
   const [compositionGoal, setCompositionGoal] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Checks if a value is a valid whole number.
+   *
+   * @param {string} value - Input value
+   * @returns {boolean} True if valid whole number
+   */
   const isWholeNumber = (value: string) => /^\d+$/.test(value);
 
+  /**
+   * Validates form data, calculates nutrition targets, and saves to Firestore.
+   *
+   * @returns {Promise<void>}
+   */
   const validateAndContinue = async () => {
     if (!age || !height || !weight || !gender || !compositionGoal) {
       Alert.alert("Missing Information", "Please complete all fields.");
