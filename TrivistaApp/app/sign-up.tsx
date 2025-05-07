@@ -22,7 +22,7 @@ export default function SignUp() {
   const handleSignUpPress = async () => {
     const resp = await handleRegister();
     if (resp) {
-      router.replace("/(app)/(drawer)/(tabs)/");
+      router.replace("/(app)/");
     }
   };
 

@@ -16,7 +16,6 @@ export default function AppLayout() {
   const { user, isLoading } = useSession();
 
   console.log("🔍 User:", user);
-  console.log("🔍 IsLoading:", isLoading);
   console.log("🔍 is onboarding complete:", user?.photoURL);
 
   if (isLoading) {
