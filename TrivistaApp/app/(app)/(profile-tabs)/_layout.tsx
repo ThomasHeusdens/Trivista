@@ -6,17 +6,24 @@ import {
   BicepsFlexed,
   CircleHelp,
   ChartNoAxesCombined,
+  LogOut,
 } from "lucide-react-native";
 
 export default function ProfileTabLayout() {
-  const { user } = useSession();
+  const { signOut, user } = useSession();
   const displayName = user?.displayName || "User";
+
+  const handleLogout = async () => {
+    await signOut();
+    router.replace("/sign-in");
+  };
 
   return (
     <Tabs
       screenOptions={{
+        headerTransparent: true,
         headerStyle: {
-          backgroundColor: "#1E1E1E",
+          backgroundColor: "#1E1E1E", 
           height: 100,
           borderBottomLeftRadius: 20,
           borderBottomRightRadius: 20,
@@ -41,8 +48,13 @@ export default function ProfileTabLayout() {
             <Plus color="white" size={30} />
           </Pressable>
         ),
+        headerRight: () => (
+          <Pressable onPress={handleLogout} style={{ marginRight: 25 }}>
+            <LogOut color="white" size={30} />
+          </Pressable>
+        ),
         tabBarStyle: {
-          backgroundColor: "#1E1E1E",
+          backgroundColor: "#1E1E1E", // ✅ make tab bar see-through
           height: 80,
           paddingBottom: 8,
           paddingTop: 8,
@@ -50,6 +62,7 @@ export default function ProfileTabLayout() {
           borderTopRightRadius: 20,
           position: "absolute",
           overflow: "hidden",
+          borderColor: "#1E1E1E",
         },
         tabBarItemStyle: {
           justifyContent: "center",
@@ -83,7 +96,9 @@ export default function ProfileTabLayout() {
         name="progress"
         options={{
           title: "PROGRESS",
-          tabBarIcon: ({ color }) => <ChartNoAxesCombined color={color} size={30} />,
+          tabBarIcon: ({ color }) => (
+            <ChartNoAxesCombined color={color} size={30} />
+          ),
         }}
       />
     </Tabs>
