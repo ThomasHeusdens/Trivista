@@ -77,7 +77,7 @@ export default function SignUp() {
       <View className="w-[80%] mb-9 space-y-4">
         <BlurView intensity={60} tint="dark" className="rounded-[10px] overflow-hidden border border-white mb-4">
           <TextInput
-            placeholder="Fullname"
+            placeholder="First name"
             placeholderTextColor="#ccc"
             value={name}
             onChangeText={setName}
