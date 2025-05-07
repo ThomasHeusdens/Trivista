@@ -13,7 +13,7 @@ export default function Onboarding4() {
     } else {
       console.warn("❌ No user found!");
     }
-    router.replace("/(app)/(drawer)/(tabs)/");
+    router.replace("/(app)/(tabs)/eat");
   };
   
 
@@ -26,7 +26,7 @@ export default function Onboarding4() {
     >
       <View className="bg-white/30 rounded-2xl p-10 w-[85%] items-center">
         <Text className="text-[#FACC15] text-2xl font-[InterBold] mb-5 text-center">
-          When do you want to start?
+          Why Trivista?
         </Text>
         <Text className="text-white text-base font-[InterRegular] mb-5 text-center">
           Training for a triathlon can feel overwhelming — it’s not just about swimming, biking, and running, but also stretching, eating right, and recovering well.{"\n\n"}

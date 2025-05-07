@@ -8,6 +8,7 @@ module.exports = {
       fontFamily: {
         bison: ["Bison"],
         inter: ["InterBold", "InterRegular"],
+        sakana: ["Sakana"],
       },
     },
 },

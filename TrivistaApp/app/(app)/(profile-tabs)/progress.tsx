@@ -5,7 +5,7 @@ import { StyleSheet, Image, Text, View } from "react-native";
 export default function TabTwoScreen() {
   return (
     <View style={{ flex: 1 }}>
-      <Text>EXPLORE SCREEN</Text>
+      <Text>PROGRESS SCREEN</Text>
     </View>
   );
 }
