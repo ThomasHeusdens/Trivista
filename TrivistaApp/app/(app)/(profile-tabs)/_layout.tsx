@@ -43,9 +43,9 @@ export default function ProfileTabLayout() {
         headerLeft: () => (
           <Pressable
             onPress={() => router.replace("/(app)/")}
-            style={{ marginLeft: 25, transform: [{ rotate: "45deg" }] }}
+            style={{ marginLeft: 20, transform: [{ rotate: "-135deg" }] }}
           >
-            <Plus color="white" size={30} />
+            <Plus color="white" size={40} />
           </Pressable>
         ),
         headerRight: () => (
