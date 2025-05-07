@@ -20,7 +20,7 @@ export default function SignIn() {
 
   const handleSignInPress = async () => {
     const resp = await handleLogin();
-    router.replace("/(app)/(drawer)/(tabs)/");
+    router.replace("/(app)/");
   };
 
   return (
