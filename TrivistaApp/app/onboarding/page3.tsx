@@ -1,3 +1,8 @@
+/**
+ * Onboarding Step 3
+ *
+ * Allows users to select their training start date and saves it to Firestore.
+ */
 import { Text, Pressable, ImageBackground, View, Alert } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { router } from "expo-router";
@@ -6,11 +11,22 @@ import { db } from "@/lib/firebase-db";
 import { doc, setDoc } from "firebase/firestore";
 import { auth } from "@/lib/firebase-config";
 
+/**
+ * Onboarding3()
+ *
+ * Renders the start date selection screen with a dynamic picker.
+ *
+ * @returns {JSX.Element} Step 3 onboarding screen
+ */
 export default function Onboarding3() {
   const [startDate, setStartDate] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 🧠 Generate next 7 days from today
+  /**
+   * Returns an array of the next 7 dates with formatted labels and values.
+   *
+   * @returns {Array<{ label: string, value: string }>}
+   */
   const getNext7Days = () => {
     const days = [];
     const options: Intl.DateTimeFormatOptions = {
@@ -34,6 +50,11 @@ export default function Onboarding3() {
 
   const startDates = getNext7Days();
 
+  /**
+   * Validates the selected date, formats it, and stores it in Firestore.
+   *
+   * @returns {Promise<void>}
+   */
   const handleContinue = async () => {
     if (!startDate) {
       Alert.alert("Missing Selection", "Please select a start date.");

@@ -1,15 +1,31 @@
+/**
+ * SignUp screen for user registration.
+ * Allows users to input their name, email, and password, and register via Firebase Auth.
+ *
+ * @returns {JSX.Element} The rendered sign-up form UI.
+ */
 import { ImageBackground, Image, Pressable, Text, TextInput, View } from "react-native";
 import { useState } from "react";
 import { useSession } from "@/context";
 import { router } from "expo-router";
 import { BlurView } from "expo-blur";
 
+/**
+ * Renders the registration screen UI with inputs for name, email, and password.
+ *
+ * @returns {JSX.Element} A styled sign-up screen with registration logic.
+ */
 export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const { signUp } = useSession();
 
+  /**
+   * Handles user registration using credentials from state.
+   *
+   * @returns {Promise<null | object>} The response from sign-up or null on failure.
+   */
   const handleRegister = async () => {
     try {
       return await signUp(email, password, name);
@@ -19,6 +35,11 @@ export default function SignUp() {
     }
   };
 
+  /**
+   * Calls registration and redirects to app on success.
+   *
+   * @returns {Promise<void>}
+   */
   const handleSignUpPress = async () => {
     const resp = await handleRegister();
     if (resp) {

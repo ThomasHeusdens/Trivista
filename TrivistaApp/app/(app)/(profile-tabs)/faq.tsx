@@ -1,3 +1,9 @@
+/**
+ * FAQ Screen
+ *
+ * Displays a list of frequently asked questions with collapsible answers.
+ * Data is fetched from Firestore and animated with expand/collapse effects.
+ */
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -17,11 +23,25 @@ import { db } from "@/lib/firebase-db";
 const screenHeight = Dimensions.get("window").height;
 const screenWidth = Dimensions.get("window").width;
 
+/**
+ * FAQ()
+ *
+ * Main component that renders the FAQ list with animated dropdown behavior.
+ *
+ * @returns {JSX.Element} The rendered FAQ screen
+ */
 const FAQ = () => {
   const [faqItems, setFaqItems] = useState<any[]>([]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const rotation = useState(new Animated.Value(0))[0];
 
+  /**
+   * fetchFAQs()
+   *
+   * Retrieves FAQ data from Firestore and stores it in local state.
+   *
+   * @returns {Promise<void>}
+   */
   const fetchFAQs = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "FAQ"));
@@ -32,6 +52,13 @@ const FAQ = () => {
     }
   };
 
+  /**
+   * toggleItem(index)
+   *
+   * Toggles the selected FAQ item and rotates the chevron icon.
+   *
+   * @param {number} index - Index of the clicked FAQ item
+   */
   const toggleItem = (index: number) => {
     if (index === openIndex) {
       setOpenIndex(null);
@@ -50,6 +77,14 @@ const FAQ = () => {
     }
   };
 
+  /**
+   * getRotation(index)
+   *
+   * Returns a rotation animation for the chevron icon based on open state.
+   *
+   * @param {number} index - Index of the current FAQ item
+   * @returns {Animated.AnimatedInterpolation} Rotation value
+   */
   const getRotation = (index: number) =>
     rotation.interpolate({
       inputRange: [0, 1],

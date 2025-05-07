@@ -1,3 +1,9 @@
+/**
+ * Main Tab Layout (Eat, Stretch, Train, Recover)
+ *
+ * Provides top and bottom navigation bars with custom styles and navigation actions
+ * for the main authenticated pages of the app.
+ */
 import { Tabs } from "expo-router";
 import { Pressable, Text } from "react-native";
 import { useNavigation } from "expo-router";
@@ -11,6 +17,14 @@ import {
 } from "lucide-react-native";
 import { DrawerNavigationProp } from "@react-navigation/drawer";
 
+/**
+ * TabLayout()
+ *
+ * Renders the main tab navigation with custom header and bottom tab styles.
+ * Includes navigation to the profile tabs and notification icon.
+ *
+ * @returns {JSX.Element} Tab navigator with 4 primary tabs
+ */
 export default function TabLayout() {
   const navigation = useNavigation<DrawerNavigationProp<any>>();
 

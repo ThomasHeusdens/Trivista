@@ -1,14 +1,29 @@
+/**
+ * SignIn screen for user authentication.
+ * Allows users to input their email and password, and authenticate via Firebase Auth.
+ *
+ * @returns {JSX.Element} The rendered sign-in form UI.
+ */
 import { ImageBackground, Image, Pressable, Text, TextInput, View } from "react-native";
 import { useState } from "react";
 import { useSession } from "@/context";
 import { router } from "expo-router";
-import { BlurView } from "expo-blur";
 
+/**
+ * SignIn renders the sign-in screen with email and password input fields.
+ *
+ * @returns {JSX.Element} The complete sign-in UI.
+ */
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { signIn } = useSession();
 
+  /**
+   * handleLogin attempts to sign in the user using email and password.
+   *
+   * @returns {Promise<any>} The authentication result or null if failed.
+   */
   const handleLogin = async () => {
     try {
       return await signIn(email, password);
@@ -18,6 +33,11 @@ export default function SignIn() {
     }
   };
 
+  /**
+   * handleSignInPress triggers login and navigates to the main app on success.
+   *
+   * @returns {Promise<void>}
+   */
   const handleSignInPress = async () => {
     const resp = await handleLogin();
     router.replace("/(app)/");
