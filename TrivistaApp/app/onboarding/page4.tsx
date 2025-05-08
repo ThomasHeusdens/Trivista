@@ -1,15 +1,30 @@
+/**
+ * Onboarding Step 4
+ *
+ * Final onboarding screen explaining the app’s mission and marking onboarding as complete.
+ */
 import { Text, Pressable, ImageBackground, View } from "react-native";
 import { router } from "expo-router";
 import { auth } from "@/lib/firebase-config";
 import { updateProfile } from "firebase/auth";
 
+/**
+ * Onboarding4()
+ *
+ * Renders the final onboarding explanation and completes the user’s onboarding state.
+ *
+ * @returns {JSX.Element} Step 4 onboarding screen
+ */
 export default function Onboarding4() {
+  /**
+   * Marks onboarding as complete by updating the user's photoURL in Firebase Auth.
+   *
+   * @returns {Promise<void>}
+   */
   const finishOnboarding = async () => {
     const user = auth.currentUser;
     if (user) {
-      console.log("🧠 User exists, updating photoURL...");
       await updateProfile(user, { photoURL: "onboarding-complete" });
-      console.log("✅ Updated photoURL to onboarding-complete");
     } else {
       console.warn("❌ No user found!");
     }

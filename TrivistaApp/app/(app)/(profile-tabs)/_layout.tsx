@@ -1,3 +1,9 @@
+/**
+ * Profile Tab Layout (Sessions, FAQ, Progress)
+ *
+ * Displays the secondary tab navigation for the user's profile section,
+ * with custom top/bottom navigation and logout support.
+ */
 import { Tabs, router } from "expo-router";
 import { Pressable, Text } from "react-native";
 import { useSession } from "@/context";
@@ -9,10 +15,25 @@ import {
   LogOut,
 } from "lucide-react-native";
 
+/**
+ * ProfileTabLayout()
+ *
+ * Renders a custom profile tab navigator with the user's name, a close button,
+ * and a logout icon, along with three profile-related screens.
+ *
+ * @returns {JSX.Element} Profile tab navigation UI
+ */
 export default function ProfileTabLayout() {
   const { signOut, user } = useSession();
   const displayName = user?.displayName || "User";
 
+  /**
+   * handleLogout()
+   *
+   * Logs the user out and redirects to the sign-in screen.
+   *
+   * @returns {Promise<void>}
+   */
   const handleLogout = async () => {
     await signOut();
     router.replace("/sign-in");
@@ -43,9 +64,9 @@ export default function ProfileTabLayout() {
         headerLeft: () => (
           <Pressable
             onPress={() => router.replace("/(app)/")}
-            style={{ marginLeft: 25, transform: [{ rotate: "45deg" }] }}
+            style={{ marginLeft: 20, transform: [{ rotate: "-135deg" }] }}
           >
-            <Plus color="white" size={30} />
+            <Plus color="white" size={40} />
           </Pressable>
         ),
         headerRight: () => (
