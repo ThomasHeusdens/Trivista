@@ -24,9 +24,7 @@ export default function Onboarding4() {
   const finishOnboarding = async () => {
     const user = auth.currentUser;
     if (user) {
-      console.log("🧠 User exists, updating photoURL...");
       await updateProfile(user, { photoURL: "onboarding-complete" });
-      console.log("✅ Updated photoURL to onboarding-complete");
     } else {
       console.warn("❌ No user found!");
     }
