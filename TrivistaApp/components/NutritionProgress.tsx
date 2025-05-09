@@ -30,14 +30,15 @@ const NutritionProgress = ({ data }) => {
   const strokeWidth = 10;
   const circumference = 2 * Math.PI * radius;
 
-  const totalCalories = data?.Calories || "Error";
-  const consumedCalories = 800; 
+  const calories = data?.Calories || "Error";
+  const totalCalories = Math.round(calories);
+  const consumedCalories = 0; 
   const caloriesProgress = consumedCalories / totalCalories;
 
   const macros = [
-    { label: "Carbs", consumed: 85, total: data?.Carbs || 170, color: "#FF2C2C" },
-    { label: "Protein", consumed: 25, total: data?.Protein || 70, color: "#22C55E" },
-    { label: "Fat", consumed: 11, total: data?.Fat || 35, color: "#3B82F6" },
+    { label: "Carbs", consumed: 0, total: data?.Carbs || 170, color: "#FF2C2C" },
+    { label: "Protein", consumed: 0, total: data?.Protein || 70, color: "#22C55E" },
+    { label: "Fat", consumed: 0, total: data?.Fat || 35, color: "#3B82F6" },
   ];
 
   return (

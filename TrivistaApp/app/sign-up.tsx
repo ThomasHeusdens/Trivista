@@ -93,11 +93,13 @@ export default function SignUp() {
           resizeMode="cover"
           className="justify-center items-center"
         >
-          <Text className="text-white text-3xl mb-9 font-[InterBold]">Welcome Trivister!</Text>
-
+          <Text className="text-white text-3xl mb-2 font-[InterBold]">Welcome on Trivista!</Text>
+          <Text className="text-white text-base mb-9 font-[InterRegular]">
+            Train for your first sprint triathlon in just 12 weeks.
+          </Text>
           <Image
             source={require("@/assets/images/logo.png")}
-            className="w-40 h-40 mb-9"
+            className="w-36 h-36 mb-9"
             resizeMode="contain"
           />
 
