@@ -74,7 +74,7 @@ export default function SignUp() {
       if (resp) {
         router.replace("/(app)/");
       } else {
-        Alert.alert("Registration Failed", "An error occurred. Please try again.");
+        Alert.alert("Email In Use", "This email address is already associated with another account.");
       }
     } catch (err) {
       Alert.alert("Error", "Something went wrong. Please try again.");
@@ -89,7 +89,7 @@ export default function SignUp() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ImageBackground
           source={require("@/assets/images/background.png")}
-          style={{ flex: 1 }}
+          style={{ flex: 1, backgroundColor: "#1E1E1E" }}
           resizeMode="cover"
           className="justify-center items-center"
         >

@@ -20,6 +20,7 @@ import { doc, getDoc, getDocs, collection, setDoc } from "firebase/firestore";
 import { mealImages } from "@/lib/imageMealsMap";
 import { AntDesign } from "@expo/vector-icons";
 import { useSession } from "@/context";
+import { LinearGradient } from "expo-linear-gradient";
 
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
@@ -207,15 +208,21 @@ const MealDetail = () => {
           resizeMode="cover"
         >
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <AntDesign name="arrowleft" size={28} color="white" />
+            <AntDesign name="arrowleft" size={28} color="#1e1e1e" />
           </Pressable>
-          <View style={styles.titleOverlay}>
+          <LinearGradient
+            colors={["#1E1E1E", "transparent"]}
+            start={{ x: 0.5, y: 1 }}
+            end={{ x: 0.5, y: 0 }}
+            style={styles.titleOverlay}
+          >
             <Text style={styles.mealName} numberOfLines={1} ellipsizeMode="tail">
               {meal.name}
             </Text>
-          </View>
+          </LinearGradient>
         </ImageBackground>
 
+        <Text style={styles.macrosTitle}>Food Summary</Text>
         <View style={styles.macroWrapper}>
           <MacroBox label="Kcal" value={totalCalories} colorMacro="#FACC15" colorValue="rgba(255,255,255,0.15)" />
           <MacroBox label="Carbs" value={`${totalCarbs}g`} colorMacro="#FF2C2C" colorValue="rgba(255,255,255,0.15)" />
@@ -354,10 +361,15 @@ const styles = StyleSheet.create({
     top: 50,
     left: 20,
     zIndex: 10,
+    backgroundColor: "#FFCA15",
+    padding: 10,
+    borderRadius: 10,
   },
-  titleOverlay: {
-    backgroundColor: "rgba(0,0,0,0.4)",
+    titleOverlay: {
+    width: "100%",
     padding: 25,
+    position: "absolute",
+    bottom: 0,
   },
   mealName: {
     color: "white",
@@ -409,6 +421,14 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 10,
   },
+  macrosTitle: {
+    color: "white",
+    fontSize: 18,
+    fontFamily: "InterBold",
+    marginHorizontal: 25,
+    marginTop: 25,
+    marginBottom: 0,
+  },
   checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -427,6 +447,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    marginLeft: 5,
+    marginRight: 5,
   },
   counterButton: {
     paddingHorizontal: 8,

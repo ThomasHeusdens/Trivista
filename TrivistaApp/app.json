@@ -8,6 +8,7 @@
     "scheme": "trivistaapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "backgroundColor": "#1E1E1E",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.trivista.app"
@@ -35,7 +36,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#000000"
         }
       ]
     ],

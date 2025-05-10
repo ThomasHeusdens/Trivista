@@ -2,67 +2,97 @@
  * NutritionProgress Component
  *
  * Displays a visual summary of the user's calorie and macronutrient intake for the day.
- * Includes a donut-shaped calorie progress chart on the left and horizontal bars for carbs, protein, and fat on the right.
+ * Fetches data from Firestore based on user's UID and totals the macros across all saved meals.
  *
  * Props:
- * - data: An object containing the user's total daily nutrition targets:
- *    {
- *      Calories: number,
- *      Carbs: number,
- *      Protein: number,
- *      Fat: number
- *    }
+ * - data: An object containing the user's daily macro goals (Calories, Carbs, Protein, Fat)
  */
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { useSession } from "@/context";
+import { db } from "@/lib/firebase-db";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
-/**
- * Uses react-native-svg to draw the calorie donut and fills it proportionally to calories consumed.
- * Macronutrients (carbs, protein, fat) are represented as colored bars with progress values.
- *
- * @param {Object} props - Component props
- * @param {Object} props.data - Nutrition targets (Calories, Carbs, Protein, Fat)
- * @returns {JSX.Element} Rendered nutrition UI
- */
 const NutritionProgress = ({ data }) => {
-  const radius = 60;
-  const strokeWidth = 10;
-  const circumference = 2 * Math.PI * radius;
+  const { user } = useSession();
+  const [macrosTotal, setMacrosTotal] = useState({
+    calorie: 0,
+    carbs: 0,
+    proteins: 0,
+    fat: 0,
+  });
 
-  const calories = data?.Calories || "Error";
-  const totalCalories = Math.round(calories);
-  const consumedCalories = 0; 
+  useEffect(() => {
+    const fetchMacros = async () => {
+      try {
+        if (!user) return;
+
+        const q = query(collection(db, "UserMeals"), where("userId", "==", user.uid));
+        const snap = await getDocs(q);
+
+        const ingredientCounts = {};
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          (data.ingredients || []).forEach((id) => {
+            ingredientCounts[id] = (ingredientCounts[id] || 0) + 1;
+          });
+        });
+
+        const ingSnapshot = await getDocs(collection(db, "Ingredients"));
+        const allIngredients = {};
+        ingSnapshot.forEach((doc) => {
+          allIngredients[doc.id] = doc.data();
+        });
+
+        const total = { calorie: 0, carbs: 0, proteins: 0, fat: 0 };
+        for (const [id, count] of Object.entries(ingredientCounts)) {
+          const ing = allIngredients[id];
+          if (!ing) continue;
+          total.calorie += (ing.calorie || 0) * count;
+          total.carbs += (ing.carbs || 0) * count;
+          total.proteins += (ing.proteins || 0) * count;
+          total.fat += (ing.fat || 0) * count;
+        }
+
+        setMacrosTotal(total);
+      } catch (err) {
+        console.error("Error loading macros:", err);
+      }
+    };
+
+    fetchMacros();
+  }, [user]);
+
+  const totalCalories = Math.round(data?.Calories || 1);
+  const consumedCalories = Math.round(macrosTotal.calorie);
   const caloriesProgress = consumedCalories / totalCalories;
 
+  const roundedCarbs = Math.round(macrosTotal.carbs);
+  const roundedProteins = Math.round(macrosTotal.proteins);
+  const roundedFat = Math.round(macrosTotal.fat);
+
   const macros = [
-    { label: "Carbs", consumed: 0, total: data?.Carbs || 170, color: "#FF2C2C" },
-    { label: "Protein", consumed: 0, total: data?.Protein || 70, color: "#22C55E" },
-    { label: "Fat", consumed: 0, total: data?.Fat || 35, color: "#3B82F6" },
+    { label: "Carbs", consumed: roundedCarbs, total: data?.Carbs || 170, color: "#FF2C2C" },
+    { label: "Protein", consumed: roundedProteins, total: data?.Protein || 70, color: "#22C55E" },
+    { label: "Fat", consumed: roundedFat, total: data?.Fat || 35, color: "#3B82F6" },
   ];
 
   return (
     <View style={styles.wrapper}>
-      {/* Circle Progress Left */}
+      {/* Donut Chart */}
       <View style={styles.circleContainer}>
         <Svg width={140} height={140}>
-          <Circle
-            stroke="#B4B4B4"
-            cx="70"
-            cy="70"
-            r={radius}
-            strokeWidth={strokeWidth}
-            fill="none"
-          />
+          <Circle stroke="#B4B4B4" cx="70" cy="70" r={60} strokeWidth={10} fill="none" />
           <Circle
             stroke="#FACC15"
             cx="70"
             cy="70"
-            r={radius}
-            strokeWidth={strokeWidth}
+            r={60}
+            strokeWidth={10}
             fill="none"
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - caloriesProgress)}
+            strokeDasharray={2 * Math.PI * 60}
+            strokeDashoffset={2 * Math.PI * 60 * (1 - caloriesProgress)}
             strokeLinecap="round"
             rotation="-90"
             origin="70,70"
@@ -75,23 +105,20 @@ const NutritionProgress = ({ data }) => {
         </View>
       </View>
 
-      {/* Macros Right */}
+      {/* Macro Bars */}
       <View style={{ flex: 1, marginLeft: 16 }}>
         {macros.map((macro) => {
           const percent = macro.consumed / macro.total;
-          // Render a labeled progress bar for each macro nutrient (carbs, protein, fat)
           return (
             <View key={macro.label} style={{ marginBottom: 12 }}>
               <View style={styles.macroRow}>
                 <Text style={styles.macroLabel}>{macro.label}</Text>
-                <Text style={styles.macroValue}>
-                  {macro.consumed}/{macro.total}g
-                </Text>
+                <Text style={styles.macroValue}>{macro.consumed}/{macro.total}g</Text>
               </View>
               <View style={styles.barBackground}>
                 <View
                   style={{
-                    width: `${percent * 100}%`,
+                    width: `${Math.min(percent * 100, 100)}%`,
                     backgroundColor: macro.color,
                     height: 6,
                     borderRadius: 6,
