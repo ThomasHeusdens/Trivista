@@ -82,7 +82,7 @@ export default function SignIn() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ImageBackground
           source={require("@/assets/images/background.png")}
-          style={{ flex: 1 }}
+          style={{ flex: 1, backgroundColor: "#1E1E1E" }}
           resizeMode="cover"
           className="justify-center items-center"
         >

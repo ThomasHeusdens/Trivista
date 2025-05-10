@@ -104,7 +104,7 @@ export default function Onboarding3() {
   return (
     <ImageBackground
       source={require("@/assets/images/background.png")}
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: "#1E1E1E" }}
       resizeMode="cover"
     >
       <KeyboardAvoidingView
