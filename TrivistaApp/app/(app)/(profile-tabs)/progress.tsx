@@ -48,6 +48,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     zIndex: -1,
+    backgroundColor: "#1E1E1E",
   }
 });
 

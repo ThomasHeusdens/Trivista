@@ -74,7 +74,7 @@ export default function SignUp() {
       if (resp) {
         router.replace("/(app)/");
       } else {
-        Alert.alert("Registration Failed", "An error occurred. Please try again.");
+        Alert.alert("Email In Use", "This email address is already associated with another account.");
       }
     } catch (err) {
       Alert.alert("Error", "Something went wrong. Please try again.");
@@ -89,15 +89,17 @@ export default function SignUp() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ImageBackground
           source={require("@/assets/images/background.png")}
-          style={{ flex: 1 }}
+          style={{ flex: 1, backgroundColor: "#1E1E1E" }}
           resizeMode="cover"
           className="justify-center items-center"
         >
-          <Text className="text-white text-3xl mb-9 font-[InterBold]">Welcome Trivister!</Text>
-
+          <Text className="text-white text-3xl mb-2 font-[InterBold]">Welcome on Trivista!</Text>
+          <Text className="text-white text-base mb-9 font-[InterRegular]">
+            Train for your first sprint triathlon in just 12 weeks.
+          </Text>
           <Image
             source={require("@/assets/images/logo.png")}
-            className="w-40 h-40 mb-9"
+            className="w-36 h-36 mb-9"
             resizeMode="contain"
           />
 
