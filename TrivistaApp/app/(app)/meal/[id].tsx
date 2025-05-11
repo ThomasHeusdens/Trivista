@@ -135,18 +135,7 @@ const MealDetail = () => {
   /**
    * Saves the customized meal to Firestore.
    */
-  const handleSave = async () => {
-    // Add validation checks
-    if (!user) {
-      Alert.alert("Error", "You must be logged in to save meals");
-      return;
-    }
-    
-    if (!type) {
-      Alert.alert("Error", "Meal type is missing");
-      return;
-    }
-    
+  const handleSave = async () => {    
     if (selectedIds.length === 0) {
       Alert.alert("Error", "Please select at least one ingredient");
       return;
@@ -171,7 +160,6 @@ const MealDetail = () => {
       });
       
       console.log("Meal saved successfully!");
-      Alert.alert("Success", "Meal saved successfully!");
       router.back();
     } catch (err) {
       console.error("Error saving meal:", err);
