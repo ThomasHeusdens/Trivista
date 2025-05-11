@@ -98,22 +98,43 @@ const Eat = () => {
       const q = query(collection(db, "UserMeals"), where("userId", "==", uid));
       const snap = await getDocs(q);
       const result = {};
+
+      const todayUTC = new Date();
+      const todayYear = todayUTC.getUTCFullYear();
+      const todayMonth = todayUTC.getUTCMonth();
+      const todayDay = todayUTC.getUTCDate();
+
       snap.forEach((docSnap) => {
         const data = docSnap.data();
         const found = meals.find((m) => m.id === data.mealId);
-        if (found && data.mealType) {
-          result[data.mealType] = {
-            ...found,
-            ingredients: data.ingredients,
-            mealType: data.mealType
-          };
+
+        if (found && data.mealType && data.timestamp?.toDate) {
+          const savedDate = data.timestamp.toDate();
+          const savedYear = savedDate.getUTCFullYear();
+          const savedMonth = savedDate.getUTCMonth();
+          const savedDay = savedDate.getUTCDate();
+
+          const isSameUTCDate =
+            savedYear === todayYear &&
+            savedMonth === todayMonth &&
+            savedDay === todayDay;
+
+          if (isSameUTCDate) {
+            result[data.mealType] = {
+              ...found,
+              ingredients: data.ingredients,
+              mealType: data.mealType,
+            };
+          }
         }
       });
+
       setSavedMealsByType(result);
     } catch (err) {
       console.error("Error fetching user meals:", err);
     }
   };
+
 
   useEffect(() => {
     if (uid) {
