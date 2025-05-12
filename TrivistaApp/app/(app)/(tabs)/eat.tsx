@@ -2,25 +2,25 @@
  * Eat screen
  * Displays daily calorie and macronutrient goals with meal selection to estimate intake.
  */
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  FlatList,
-  ScrollView,
-  ImageBackground,
-  StyleSheet,
-  Dimensions,
-  Pressable,
-  Alert,
-} from "react-native";
+import NutritionProgress from "@/components/NutritionProgress";
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { mealImages } from "@/lib/imageMealsMap";
-import NutritionProgress from "@/components/NutritionProgress"; 
 import { useRouter } from "expo-router";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import {
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  ImageBackground,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 const screenHeight = Dimensions.get("window").height;
 const screenWidth = Dimensions.get("window").width;
@@ -212,7 +212,7 @@ const Eat = () => {
                     <Text style={{ color: "white" }}>{Math.round(macros.calorie)}</Text>
                   </Text>
                   <Text style={{ fontSize: 13 }}>
-                    <Text style={{ color: "#FF2C2C" }}>● </Text>
+                    <Text style={{ color: "#FF8C00" }}>● </Text>
                     <Text style={{ color: "white" }}>{Math.round(macros.carbs)}g</Text>
                   </Text>
                   <Text style={{ fontSize: 13 }}>
@@ -252,7 +252,7 @@ const Eat = () => {
             const totalKcal = calculateMacros(item).calorie;
             return (
               <Pressable onPress={() => router.push({ pathname: `/meal/${item.id}`, params: { type } })}>
-                <View style={{ backgroundColor: "rgba(255, 255, 255, 0.3)", padding: 14, borderRadius: 10, width: 200, alignItems: "center" }}>
+                <View style={{ backgroundColor: "rgba(255, 255, 255, 0.3)", padding: 14, borderRadius: 10, width: 200, alignItems: "center", height: 235}}>
                   <Image
                     source={mealImages[item.picture]}
                     style={{ width: 140, height: 140, borderRadius: 70 }}

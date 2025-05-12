@@ -143,7 +143,7 @@ const NutritionProgress = ({ data }) => {
       label: "Carbs",
       consumed: Math.round(macrosTotal.carbs),
       total: data?.Carbs || 170,
-      color: "#FF2C2C",
+      color: "#FF8C00",
       key: "carbs",
     },
     {
