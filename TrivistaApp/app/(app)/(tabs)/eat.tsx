@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Dimensions,
   Pressable,
+  Alert,
 } from "react-native";
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
@@ -286,15 +287,24 @@ const Eat = () => {
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: 25, paddingTop: 122, paddingBottom: 82 }}
       >
-        <Text className="text-2xl font-[InterBold] text-center text-white mb-6">
+        <Text className="text-2xl font-[InterBold] text-center text-white mb-2">
           Calorie intake of the day
         </Text>
-        <Text className="text-base font-[InterRegular] text-center text-[#B4B4B4] mb-6">
+        <Text className="text-base font-[InterRegular] text-center text-[#B4B4B4] mb-9">
           Select the meals you eat for breakfast, lunch, your protein snack, and dinner to easily
           estimate your daily intake of calories, carbs, fats, and proteins.
         </Text>
-
-        {nutrition && <NutritionProgress data={nutrition} />}
+        
+        <Pressable
+          onPress={() =>
+            Alert.alert(
+              "Daily calorie intake",
+              "Your daily calories are calculated using the Mifflin-St Jeor Formula, a science-based method to estimate how much energy your body needs. We then adjust this based on your goal (lose, maintain, or gain weight) and split the result into 50% carbs, 25% protein, and 25% fat — just what your body needs to train effectively."
+            )
+          }
+        >
+          {nutrition && <NutritionProgress data={nutrition} />}
+        </Pressable>
 
         {renderMealSection("breakfast", "Breakfast", "8:00 AM")}
         {renderMealSection("lunch", "Lunch", "12:30 PM")}
