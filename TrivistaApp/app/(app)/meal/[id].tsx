@@ -1,26 +1,26 @@
 /**
  * Displays a meal detail page allowing users to customize and save their meal.
  */
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  ImageBackground,
-  StyleSheet,
-  Dimensions,
-  ScrollView,
-  Pressable,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
-import { Checkbox } from "react-native-paper";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
-import { doc, getDoc, getDocs, collection, setDoc } from "firebase/firestore";
 import { mealImages } from "@/lib/imageMealsMap";
 import { AntDesign } from "@expo/vector-icons";
-import { useSession } from "@/context";
 import { LinearGradient } from "expo-linear-gradient";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import {
+  Alert,
+  Dimensions,
+  ImageBackground,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Checkbox } from "react-native-paper";
 
 const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
@@ -213,7 +213,7 @@ const MealDetail = () => {
         <Text style={styles.macrosTitle}>Food Summary</Text>
         <View style={styles.macroWrapper}>
           <MacroBox label="Kcal" value={totalCalories} colorMacro="#FACC15" colorValue="rgba(255,255,255,0.15)" />
-          <MacroBox label="Carbs" value={`${totalCarbs}g`} colorMacro="#FF2C2C" colorValue="rgba(255,255,255,0.15)" />
+          <MacroBox label="Carbs" value={`${totalCarbs}g`} colorMacro="#FF8C00" colorValue="rgba(255,255,255,0.15)" />
           <MacroBox label="Protein" value={`${totalProtein}g`} colorMacro="#22C55E" colorValue="rgba(255,255,255,0.15)" />
           <MacroBox label="Fat" value={`${totalFat}g`} colorMacro="#3B82F6" colorValue="rgba(255,255,255,0.15)" />
         </View>
