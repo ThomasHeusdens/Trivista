@@ -3,18 +3,18 @@
  *
  * Displays animated daily progress for calories and macronutrients.
  */
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import Svg, { Circle } from "react-native-svg";
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import Animated, {
-  useSharedValue,
-  withTiming,
   useAnimatedProps,
   useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
+import Svg, { Circle } from "react-native-svg";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
