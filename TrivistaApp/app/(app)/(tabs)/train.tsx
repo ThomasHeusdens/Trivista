@@ -253,7 +253,7 @@ const Train = () => {
         ]}
         resizeMode="cover"
       />
-      <ScrollView contentContainerStyle={{ padding: 25, paddingTop: 122 }}>
+      <ScrollView contentContainerStyle={{ padding: 25, paddingTop: 122, paddingBottom: 82 }}>
         <View className="flex-row items-center justify-between mb-2 relative">
           <View className="flex-1 left-0">
             <Text className="text-base text-white font-[InterRegular]">Day {appDay}</Text>
