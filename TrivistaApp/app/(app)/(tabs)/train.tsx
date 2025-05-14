@@ -147,14 +147,14 @@ const Train = () => {
       const video = randomVideos[index];
       return video ? (
         <View style={{ height: 200, marginTop: 12, borderRadius: 12, overflow: "hidden" }}>
-          <WebView source={{ uri: video.iframe }} style={{ flex: 1 }} />
+          <WebView source={{ uri: video.iframe }} style={{ flex: 1 }} allowsInlineMediaPlayback={true} mediaPlaybackRequiresUserAction={false} />
         </View>
       ) : null;
     } else {
       const video = trainingVideos.find((v) => v.day === selectedDay);
       return video ? (
         <View style={{ height: 200, marginTop: 12, borderRadius: 12, overflow: "hidden" }}>
-          <WebView source={{ uri: video.iframe }} style={{ flex: 1 }} />
+          <WebView source={{ uri: video.iframe }} style={{ flex: 1 }} allowsInlineMediaPlayback={true} mediaPlaybackRequiresUserAction={false} />
         </View>
       ) : null;
     }
@@ -253,7 +253,7 @@ const Train = () => {
         ]}
         resizeMode="cover"
       />
-      <ScrollView contentContainerStyle={{ padding: 25, paddingTop: 122 }}>
+      <ScrollView contentContainerStyle={{ padding: 25, paddingTop: 122, paddingBottom: 82 }}>
         <View className="flex-row items-center justify-between mb-2 relative">
           <View className="flex-1 left-0">
             <Text className="text-base text-white font-[InterRegular]">Day {appDay}</Text>
@@ -281,7 +281,7 @@ const Train = () => {
         ) : trainingData ? (
           <View>
             <Text className="text-2xl font-[InterBold] text-center text-white mb-2">
-              Day {selectedDay}: {trainingData.title}
+              {trainingData.title}
             </Text>
             {renderVideo()}
             <View className="flex-row items-center justify-between gap-5 mt-5 mb-2 relative">
