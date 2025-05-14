@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
-import { Timer } from "lucide-react-native";
+import { Timer, ChevronDown, ChevronUp } from "lucide-react-native";
 import { Audio } from "expo-av";
 import Animated, { 
   useSharedValue, 
@@ -24,12 +24,15 @@ import Animated, {
 import { LinearGradient } from "expo-linear-gradient";
 import {
   collection,
+  orderBy, 
+  query,
   getDocs,
   getDoc,
   doc,
   setDoc,
   Timestamp,
 } from "firebase/firestore";
+import { WebView } from "react-native-webview";
 
 const Stretch = () => {
   const { user } = useSession();
@@ -45,6 +48,11 @@ const Stretch = () => {
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [totalTimeLeft, setTotalTimeLeft] = useState(0);
+
+  const [randomVideos, setRandomVideos] = useState([]);
+  const [trainingVideos, setTrainingVideos] = useState([]);
+  const [showVideo, setShowVideo] = useState(false);
+  const [selectedRandomVideo, setSelectedRandomVideo] = useState(null);
   
   // Add these new state variables to track paused state
   const [pausedTimeLeft, setPausedTimeLeft] = useState(0);
@@ -150,6 +158,39 @@ const Stretch = () => {
       setStretchings(all);
     };
 
+    const fetchVideos = async () => {
+      try {
+        const trainingSnap = await getDocs(collection(db, "TrainingVideos"));
+        const randomSnap = await getDocs(query(collection(db, "RandomVideos"), orderBy("iframe")));
+        
+        setTrainingVideos(trainingSnap.docs.map((doc) => doc.data()));
+        const randomVideosData = randomSnap.docs.map((doc) => doc.data());
+        setRandomVideos(randomVideosData);
+        
+        if (randomVideosData.length > 0) {
+          // If startDate is available, calculate the day difference for consistent randomization
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          // Using a deterministic way to select a video, similar to Train component
+          if (user) {
+            const createdAt = new Date(user.metadata.creationTime);
+            createdAt.setHours(0, 0, 0, 0);
+            const daysWaiting = Math.floor((today - createdAt) / (1000 * 60 * 60 * 24));
+            const index = daysWaiting % randomVideosData.length;
+            setSelectedRandomVideo(randomVideosData[index]);
+          } else {
+            // Fallback to a random selection if no user
+            const randomIndex = Math.floor(Math.random() * randomVideosData.length);
+            setSelectedRandomVideo(randomVideosData[randomIndex]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch videos", err);
+      }
+    };
+
+    fetchVideos();
     fetchData();
     fetchStretchings();
   }, [user]);
@@ -317,34 +358,143 @@ const Stretch = () => {
       />
       <ScrollView 
         ref={scrollViewRef}
-        contentContainerStyle={{ padding: 25, paddingTop: 122, paddingBottom: 200 }}
+        contentContainerStyle={{ padding: 25, paddingTop: 122, paddingBottom: 230 }}
       >
         <Text className="text-white text-2xl font-[InterBold] text-center mb-5">Today's training sessions</Text>
 
-        {!timerActive && !stretchingCompleted && (
-          <View className="flex-row justify-between mb-5 w-[100%] self-center">
-            <Pressable
-              onPress={() => setSelectedType("pre")}
-              className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "pre" ? "bg-white/30" : "bg-[#FACC15]"}`}
-            >
-              <Text className={`font-[Bison] ${selectedType === "pre" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
-                PRE
-              </Text>
-            </Pressable>
+        {!showVideo && !timerActive && !stretchingCompleted && (
+          <View className="flex-1 items-center mb-5">        
+            <View className="flex-row justify-between mb-5 w-[100%] self-center">
+              <Pressable
+                onPress={() => setSelectedType("pre")}
+                className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "pre" ? "bg-white/30" : "bg-[#FACC15]"}`}
+              >
+                <Text className={`font-[Bison] ${selectedType === "pre" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
+                  PRE
+                </Text>
+              </Pressable>
 
-            <Pressable
-              onPress={() => setSelectedType("post")}
-              className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "post" ? "bg-white/30" : "bg-[#FACC15]"}`}
-            >
-              <Text className={`font-[Bison] ${selectedType === "post" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
-                POST
-              </Text>
+              <Pressable
+                onPress={() => setSelectedType("post")}
+                className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "post" ? "bg-white/30" : "bg-[#FACC15]"}`}
+              >
+                <Text className={`font-[Bison] ${selectedType === "post" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
+                  POST
+                </Text>
+              </Pressable>
+            </View>
+            <View className="flex-1 w-[100%] items-center">
+              <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+                <ChevronDown color="white" size={20} />
+                <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
+                <ChevronDown color="white" size={20} />
+              </Pressable>
+            </View>
+          </View>
+        )}
+
+        {showVideo && !timerActive && !stretchingCompleted && (
+          <View>        
+            <View className="flex-row justify-between mb-5 w-[100%] self-center">
+              <Pressable
+                onPress={() => setSelectedType("pre")}
+                className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "pre" ? "bg-white/30" : "bg-[#FACC15]"}`}
+              >
+                <Text className={`font-[Bison] ${selectedType === "pre" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
+                  PRE
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setSelectedType("post")}
+                className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "post" ? "bg-white/30" : "bg-[#FACC15]"}`}
+              >
+                <Text className={`font-[Bison] ${selectedType === "post" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
+                  POST
+                </Text>
+              </Pressable>
+            </View>
+            <View className="flex-1 w-[100%] items-center mb-4">
+              <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+                <ChevronUp color="white" size={20} />
+                <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
+                <ChevronUp color="white" size={20} />
+              </Pressable>
+            </View>
+            <View style={{ height: 200, marginBottom: 15, borderRadius: 10, overflow: "hidden" }}>
+              <WebView
+                source={{
+                  uri: (() => {
+                    const videoUrl = !startDate
+                      ? selectedRandomVideo?.iframe || ""
+                      : (() => {
+                          const today = new Date();
+                          today.setUTCHours(0, 0, 0, 0);
+                          const diff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+                          if (diff < 0 || !trainingVideos.length) {
+                            return selectedRandomVideo?.iframe || "";
+                          } else {
+                            return trainingVideos.find((v) => v.day === diff + 1)?.iframe || "";
+                          }
+                        })();
+                    return videoUrl;
+                  })()
+                }}
+                allowsInlineMediaPlayback={true}
+                mediaPlaybackRequiresUserAction={false}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        )}
+
+        {showVideo && timerActive && (
+          <View>
+            <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 mb-4 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+              <ChevronUp color="white" size={20} />
+              <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
+              <ChevronUp color="white" size={20} />
+            </Pressable>
+            <View style={{ height: 200, marginBottom: 15, borderRadius: 10, overflow: "hidden" }}>
+              <WebView
+                source={{
+                  uri: (() => {
+                    if (!startDate) {
+                      // Return the stable selected random video
+                      return selectedRandomVideo?.iframe || "";
+                    } else {
+                      const today = new Date();
+                      today.setUTCHours(0, 0, 0, 0);
+                      const diff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+                      if (diff < 0 || !trainingVideos.length) {
+                        // Use the stored random video instead of generating a new one
+                        return selectedRandomVideo?.iframe || "";
+                      } else {
+                        return trainingVideos.find((v) => v.day === diff + 1)?.iframe || "";
+                      }
+                    }
+                  })()
+                }}
+                allowsInlineMediaPlayback={true}
+                mediaPlaybackRequiresUserAction={false}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        )}
+
+        {!showVideo && timerActive && (
+          <View className="flex-1 w-[100%] items-center mb-5">
+            <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+              <ChevronDown color="white" size={20} />
+              <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
+              <ChevronDown color="white" size={20} />
             </Pressable>
           </View>
         )}
 
         {/* Show completion message when stretching is done */}
-        {stretchingCompleted && !timerActive && (
+        {showVideo && stretchingCompleted && !timerActive && (
           <View className="items-center">
             <View className="flex-row justify-between mb-6 w-[100%]">
               <Pressable
@@ -363,6 +513,75 @@ const Stretch = () => {
                 <Text className={`font-[Bison] ${selectedType === "post" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
                   POST
                 </Text>
+              </Pressable>
+            </View>
+            <View>
+              <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 mb-4 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+                <ChevronUp color="white" size={20} />
+                <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
+                <ChevronUp color="white" size={20} />
+              </Pressable>
+              <View style={{ height: 200, marginBottom: 15, borderRadius: 10, overflow: "hidden" }}>
+                <WebView
+                  source={{
+                    uri: (() => {
+                      if (!startDate) {
+                        // Return the stable selected random video
+                        return selectedRandomVideo?.iframe || "";
+                      } else {
+                        const today = new Date();
+                        today.setUTCHours(0, 0, 0, 0);
+                        const diff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+                        if (diff < 0 || !trainingVideos.length) {
+                          // Use the stored random video instead of generating a new one
+                          return selectedRandomVideo?.iframe || "";
+                        } else {
+                          return trainingVideos.find((v) => v.day === diff + 1)?.iframe || "";
+                        }
+                      }
+                    })()
+                  }}
+                  allowsInlineMediaPlayback={true}
+                  mediaPlaybackRequiresUserAction={false}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            </View>
+            <Text className="text-white font-[InterBold] text-xl text-center mb-2">
+              Today's {selectedType === "pre" ? "Pre" : "Post"}-Stretching Completed!
+            </Text>
+            <Text className="text-[#B4B4B4] font-[InterRegular] text-base text-center">
+              Great job! You've already completed your {selectedType === "pre" ? "pre" : "post"}-stretching for today.
+            </Text>
+          </View>
+        )}
+
+        {!showVideo && stretchingCompleted && !timerActive && (
+          <View className="items-center">
+            <View className="flex-row justify-between mb-6 w-[100%]">
+              <Pressable
+                onPress={() => setSelectedType("pre")}
+                className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "pre" ? "bg-white/30" : "bg-[#FACC15]"}`}
+              >
+                <Text className={`font-[Bison] ${selectedType === "pre" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
+                  PRE
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => setSelectedType("post")}
+                className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "post" ? "bg-white/30" : "bg-[#FACC15]"}`}
+              >
+                <Text className={`font-[Bison] ${selectedType === "post" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
+                  POST
+                </Text>
+              </Pressable>
+            </View>
+            <View>
+              <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 mb-4 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+                <ChevronDown color="white" size={20} />
+                <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
+                <ChevronDown color="white" size={20} />
               </Pressable>
             </View>
             <Text className="text-white font-[InterBold] text-xl text-center mb-2">
