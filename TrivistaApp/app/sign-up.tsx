@@ -21,6 +21,7 @@ import { useState } from "react";
 import { useSession } from "@/context";
 import { router } from "expo-router";
 import { BlurView } from "expo-blur";
+import { ActivityIndicator } from "react-native";
 
 /**
  * Renders the registration screen UI with inputs for name, email, and password.
@@ -32,6 +33,7 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [repeatEmail, setRepeatEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const { signUp } = useSession();
 
   /**
@@ -70,13 +72,16 @@ export default function SignUp() {
     }
 
     try {
+      setLoading(true);
       const resp = await signUp(email, password, name);
       if (resp) {
         router.replace("/(app)/");
       } else {
+        setLoading(false);
         Alert.alert("Email In Use", "This email address is already associated with another account.");
       }
     } catch (err) {
+      setLoading(false);
       Alert.alert("Error", "Something went wrong. Please try again.");
     }
   };
@@ -171,20 +176,26 @@ export default function SignUp() {
             </BlurView>
           </View>
 
-          <Pressable
-            onPress={handleSignUpPress}
-            className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]"
-          >
-            <Text
-              className="text-center text-black text-base font-semibold font-[Bison]"
-              style={{
-                letterSpacing: 1.5,
-                fontSize: 20,
-              }}
+          {loading ? (
+            <View className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]">
+              <ActivityIndicator size="small" color="#1E1E1E" />
+            </View>
+          ) : (
+            <Pressable
+              onPress={handleSignUpPress}
+              className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]"
             >
-              GET STARTED
-            </Text>
-          </Pressable>
+              <Text
+                className="text-center text-black text-base font-semibold font-[Bison]"
+                style={{
+                  letterSpacing: 1.5,
+                  fontSize: 20,
+                }}
+              >
+                GET STARTED
+              </Text>
+            </Pressable>
+          )}
         </ImageBackground>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>

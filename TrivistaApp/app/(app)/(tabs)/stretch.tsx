@@ -22,6 +22,7 @@ import Animated, {
   withSequence,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import { ActivityIndicator } from "react-native";
 import {
   collection,
   orderBy, 
@@ -54,14 +55,17 @@ const Stretch = () => {
   const [showVideo, setShowVideo] = useState(false);
   const [selectedRandomVideo, setSelectedRandomVideo] = useState(null);
   
-  // Add these new state variables to track paused state
   const [pausedTimeLeft, setPausedTimeLeft] = useState(0);
   const [pausedTotalTimeLeft, setPausedTotalTimeLeft] = useState(0);
   const [pausedProgress, setPausedProgress] = useState(0);
-  // Track completed exercises
   const [completedExercises, setCompletedExercises] = useState([]);
-  // Track if today's stretching has been completed
   const [stretchingCompleted, setStretchingCompleted] = useState(false);
+
+  const [loading, setLoading] = useState(true);
+  const [stretchingsLoaded, setStretchingsLoaded] = useState(false);
+  const [videosLoaded, setVideosLoaded] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
 
   const progress = useSharedValue(0);
   const intervalRef = useRef(null);
@@ -150,13 +154,21 @@ const Stretch = () => {
         const todayTraining = trainings.find((t) => t.day === diff + 1);
         setTrainingType(todayTraining?.type || "off");
       }
+      setDataLoaded(true);
     };
 
     const fetchStretchings = async () => {
-      const snap = await getDocs(collection(db, "Stretching"));
-      const all = snap.docs.map((doc) => doc.data());
-      setStretchings(all);
+      try {
+        const snap = await getDocs(collection(db, "Stretching"));
+        const all = snap.docs.map((doc) => doc.data());
+        setStretchings(all);
+      } catch (err) {
+        console.error("Error fetching stretchings:", err);
+      } finally {
+        setStretchingsLoaded(true);
+      }
     };
+
 
     const fetchVideos = async () => {
       try {
@@ -185,6 +197,7 @@ const Stretch = () => {
             setSelectedRandomVideo(randomVideosData[randomIndex]);
           }
         }
+        setVideosLoaded(true);
       } catch (err) {
         console.error("Failed to fetch videos", err);
       }
@@ -194,6 +207,12 @@ const Stretch = () => {
     fetchData();
     fetchStretchings();
   }, [user]);
+
+  useEffect(() => {
+    if (stretchingsLoaded && videosLoaded && dataLoaded) {
+      setLoading(false);
+    }
+  }, [stretchingsLoaded, videosLoaded, dataLoaded]);
 
   // Check stretching completion when component loads or selectedType changes
   useEffect(() => {
@@ -348,6 +367,15 @@ const Stretch = () => {
     progress.value = 0;
     setCompletedExercises([]);
   };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>
+        <ActivityIndicator size="large" color="white" />
+      </View>
+    );
+  }
+
 
   return (
     <>

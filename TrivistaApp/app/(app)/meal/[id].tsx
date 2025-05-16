@@ -8,6 +8,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { ActivityIndicator } from "react-native";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -40,6 +41,7 @@ const MealDetail = () => {
   const [ingredients, setIngredients] = useState({});
   const [selectedIds, setSelectedIds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [buttonLoading, setButtonLoading] = useState(false);
 
   /**
    * Fetches meal and ingredient data from Firestore.
@@ -141,16 +143,9 @@ const MealDetail = () => {
       return;
     }
 
-    try {
-      console.log("Saving meal...", {
-        userId: user.uid,
-        mealType: type,
-        selectedIngredients: selectedIds.length,
-        mealId: id
-      });
-      
+    try { 
+      setButtonLoading(true);
       const docId = `${user.uid}_${type}`;
-      
       await setDoc(doc(db, "UserMeals", docId), {
         ingredients: selectedIds,
         timestamp: new Date(),
@@ -159,18 +154,17 @@ const MealDetail = () => {
         userId: user.uid,
       });
       
-      console.log("Meal saved successfully!");
       router.back();
     } catch (err) {
-      console.error("Error saving meal:", err);
+      setButtonLoading(false);
       Alert.alert("Error", `Failed to save meal: ${err.message}`);
     }
   };
 
   if (isLoading || !meal || Object.keys(ingredients).length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: "#1E1E1E" }}>
-        <Text style={{ color: 'white' }}>Loading...</Text>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>
+        <ActivityIndicator size="large" color="white" />
       </View>
     );
   }
@@ -296,18 +290,26 @@ const MealDetail = () => {
         )}
       </ScrollView>
 
-      <TouchableOpacity 
-        style={[
-          styles.saveButton,
-          selectedIds.length === 0 && styles.saveButtonDisabled
-        ]} 
-        onPress={handleSave}
-        disabled={selectedIds.length === 0}
-      >
-        <Text style={styles.saveButtonText}>
-          Save Meal {selectedIds.length > 0 ? `(${selectedIds.length} items)` : ''}
-        </Text>
-      </TouchableOpacity>
+      {buttonLoading ? (
+            <View style={[
+                styles.saveButton,
+              ]}>
+              <ActivityIndicator size="small" color="#1E1E1E" />
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={[
+                styles.saveButton,
+                selectedIds.length === 0 && styles.saveButtonDisabled
+              ]} 
+              onPress={handleSave}
+              disabled={selectedIds.length === 0}
+            >
+              <Text style={styles.saveButtonText}>
+                Save Meal {selectedIds.length > 0 ? `(${selectedIds.length} items)` : ''}
+              </Text>
+            </TouchableOpacity>
+          )}
     </View>
   );
 };

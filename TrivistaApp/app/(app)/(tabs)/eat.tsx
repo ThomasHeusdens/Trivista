@@ -9,6 +9,7 @@ import { mealImages } from "@/lib/imageMealsMap";
 import { useRouter } from "expo-router";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
+import { ActivityIndicator } from "react-native";
 import {
   Alert,
   Dimensions,
@@ -39,6 +40,12 @@ const Eat = () => {
   const [ingredients, setIngredients] = useState({});
   const [savedMealsByType, setSavedMealsByType] = useState({});
 
+  const [loading, setLoading] = useState(true);
+  const [nutritionLoaded, setNutritionLoaded] = useState(false);
+  const [mealsLoaded, setMealsLoaded] = useState(false);
+  const [ingredientsLoaded, setIngredientsLoaded] = useState(false);
+  const [savedMealsLoaded, setSavedMealsLoaded] = useState(false);
+
   /**
    * Fetches the authenticated user's daily calorie and macro targets from Firestore.
    *
@@ -51,8 +58,10 @@ const Eat = () => {
       if (snap.exists()) {
         setNutrition(snap.data());
       }
+      setNutritionLoaded(true);
     } catch (err) {
       console.error("Error fetching nutrition:", err);
+      setNutritionLoaded(true); // Still mark as loaded even on error
     }
   };
 
@@ -66,8 +75,10 @@ const Eat = () => {
       const querySnapshot = await getDocs(collection(db, "Meals"));
       const fetched = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setMeals(fetched);
+      setMealsLoaded(true);
     } catch (err) {
       console.error("Error fetching meals:", err);
+      setMealsLoaded(true); // Still mark as loaded even on error
     }
   };
 
@@ -84,8 +95,10 @@ const Eat = () => {
         result[doc.id] = doc.data();
       });
       setIngredients(result);
+      setIngredientsLoaded(true);
     } catch (err) {
       console.error("Error fetching ingredients:", err);
+      setIngredientsLoaded(true); // Still mark as loaded even on error
     }
   };
 
@@ -131,8 +144,10 @@ const Eat = () => {
       });
 
       setSavedMealsByType(result);
+      setSavedMealsLoaded(true);
     } catch (err) {
       console.error("Error fetching user meals:", err);
+      setSavedMealsLoaded(true); // Still mark as loaded even on error
     }
   };
 
@@ -146,10 +161,19 @@ const Eat = () => {
   }, [uid]);
 
   useEffect(() => {
-    if (uid && meals.length > 0) {
+    if (uid && meals.length > 0 && !savedMealsLoaded) {
       fetchSavedMeals();
     }
-  }, [uid, meals]);
+  }, [uid, meals, savedMealsLoaded]);
+
+  // Check if all data is loaded and set loading state accordingly
+  useEffect(() => {
+    if (nutritionLoaded && mealsLoaded && ingredientsLoaded && 
+        (savedMealsLoaded || meals.length === 0)) {
+      setLoading(false);
+    }
+  }, [nutritionLoaded, mealsLoaded, ingredientsLoaded, savedMealsLoaded, meals]);
+
 
   /**
    * Computes the total macros (calories, carbs, proteins, fats) for a given meal.
@@ -275,6 +299,14 @@ const Eat = () => {
       </View>
     );
   };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>
+        <ActivityIndicator size="large" color="white" />
+      </View>
+    );
+  }
 
   return (
     <>

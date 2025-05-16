@@ -21,6 +21,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 
 const Train = () => {
@@ -320,7 +321,9 @@ const Train = () => {
             </Pressable>
           </View>
         ) : (
-          <Text style={styles.loadingText}>Loading training...</Text>
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>
+            <ActivityIndicator size="large" color="white" />
+          </View>
         )}
       </ScrollView>
     </>

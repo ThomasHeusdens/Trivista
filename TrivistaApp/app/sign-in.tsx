@@ -20,6 +20,7 @@ import {
 import { useState } from "react";
 import { useSession } from "@/context";
 import { router } from "expo-router";
+import { ActivityIndicator } from "react-native";
 
 /**
  * SignIn renders the sign-in screen with email and password input fields.
@@ -29,6 +30,7 @@ import { router } from "expo-router";
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const { signIn } = useSession();
 
   /**
@@ -62,14 +64,16 @@ export default function SignIn() {
     }
 
     try {
+      setLoading(true);
       const resp = await signIn(email, password);
-
       if (resp) {
         router.replace("/(app)/");
       } else {
+        setLoading(false);
         Alert.alert("Login Failed", "Email or password is incorrect.");
       }
     } catch (err) {
+      setLoading(false);
       Alert.alert("Login Error", "Something went wrong. Please try again.");
     }
   };
@@ -144,20 +148,26 @@ export default function SignIn() {
             </View>
           </View>
 
-          <Pressable
-            onPress={handleSignInPress}
-            className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]"
-          >
-            <Text
-              className="text-center text-black text-base font-semibold font-[Bison]"
-              style={{
-                letterSpacing: 1.5,
-                fontSize: 20,
-              }}
+          {loading ? (
+            <View className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]">
+              <ActivityIndicator size="small" color="#1E1E1E" />
+            </View>
+          ) : (
+            <Pressable
+              onPress={handleSignInPress}
+              className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]"
             >
-              GET STARTED
-            </Text>
-          </Pressable>
+              <Text
+                className="text-center text-black text-base font-semibold font-[Bison]"
+                style={{
+                  letterSpacing: 1.5,
+                  fontSize: 20,
+                }}
+              >
+                GET STARTED
+              </Text>
+            </Pressable>
+          )}
         </ImageBackground>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
