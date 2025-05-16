@@ -23,6 +23,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
+import CustomAlert from "@/components/CustomAlert";
 
 const Train = () => {
   const { user } = useSession();
@@ -38,6 +39,10 @@ const Train = () => {
   const [randomVideos, setRandomVideos] = useState([]);
   const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   const progress = useSharedValue(0);
 
@@ -313,12 +318,18 @@ const Train = () => {
               style={[
                 styles.saveButton,
               ]} 
-              onPress={ () => Alert.alert("Training Details", trainingData.description) }
+              onPress={() => setAlertVisible(true)}
             >
               <Text style={styles.saveButtonText}>
                 See Details
               </Text>
             </Pressable>
+            <CustomAlert
+              visible={alertVisible}
+              title={"Training Details"}
+              message={trainingData.description}
+              onClose={() => setAlertVisible(false)}
+            />
           </View>
         ) : (
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>

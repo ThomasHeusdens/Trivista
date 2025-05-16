@@ -6,7 +6,7 @@
  * - Redirects users who haven't completed onboarding to the onboarding flow.
  * - Renders child routes for authenticated and onboarded users.
  */
-import { Text } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import { Redirect, Slot } from "expo-router";
 import { useSession } from "@/context";
 
@@ -21,7 +21,11 @@ export default function AppLayout() {
   const { user, isLoading } = useSession();
 
   if (isLoading) {
-    return <Text>Loading...</Text>;
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>
+        <ActivityIndicator size="large" color="white" />
+      </View>
+    );
   }
 
   if (!user) {

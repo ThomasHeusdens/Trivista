@@ -11,17 +11,17 @@ import { collection, doc, getDoc, getDocs, query, where } from "firebase/firesto
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator } from "react-native";
 import {
-  Alert,
   Dimensions,
   FlatList,
   Image,
   ImageBackground,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import CustomAlert from "@/components/CustomAlert";
 
 const screenHeight = Dimensions.get("window").height;
 const screenWidth = Dimensions.get("window").width;
@@ -34,6 +34,8 @@ const Eat = () => {
   const { user } = useSession();
   const uid = user?.uid;
   const router = useRouter();
+
+  const [alertVisible, setAlertVisible] = useState(false);
 
   const [nutrition, setNutrition] = useState(null);
   const [meals, setMeals] = useState([]);
@@ -219,7 +221,7 @@ const Eat = () => {
             <Text style={{ color: "white", fontSize: 20, fontFamily: "InterBold" }}>{label}</Text>
             <Text style={{ color: "#22C55E", fontSize: 14, fontFamily: "InterBold" }}>Done</Text>
           </View>
-          <Pressable onPress={() => router.push({ pathname: `/meal/${meal.id}`, params: { type: meal.mealType } })}>
+          <TouchableOpacity onPress={() => router.push({ pathname: `/meal/${meal.id}`, params: { type: meal.mealType } })}>
             <View style={{ backgroundColor: "rgba(255, 255, 255, 0.3)", borderBottomRightRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 60, borderTopLeftRadius: 60, padding: 0, flexDirection: "row", alignItems: "center" }}>
               <Image
                 source={mealImages[meal.picture]}
@@ -253,7 +255,7 @@ const Eat = () => {
                 </Text>
               </View>
             </View>
-          </Pressable>
+          </TouchableOpacity>
         </View>
       );
     }
@@ -275,7 +277,7 @@ const Eat = () => {
           renderItem={({ item }) => {
             const totalKcal = calculateMacros(item).calorie;
             return (
-              <Pressable onPress={() => router.push({ pathname: `/meal/${item.id}`, params: { type } })}>
+              <TouchableOpacity onPress={() => router.push({ pathname: `/meal/${item.id}`, params: { type } })}>
                 <View style={{ backgroundColor: "rgba(255, 255, 255, 0.3)", padding: 14, borderRadius: 10, width: 200, alignItems: "center", height: 235}}>
                   <Image
                     source={mealImages[item.picture]}
@@ -292,7 +294,7 @@ const Eat = () => {
                     {Math.round(totalKcal)} Kcal
                   </Text>
                 </View>
-              </Pressable>
+              </TouchableOpacity>
             );
           }}
         />
@@ -327,22 +329,23 @@ const Eat = () => {
           estimate your daily intake of calories, carbs, fats, and proteins.
         </Text>
         
-        <Pressable
-          onPress={() =>
-            Alert.alert(
-              "Daily calorie intake",
-              "Your daily calories are calculated using the Mifflin-St Jeor Formula, a science-based method to estimate how much energy your body needs. We then adjust this based on your goal (lose, maintain, or gain weight) and split the result into 50% carbs, 25% protein, and 25% fat — just what your body needs to train effectively."
-            )
-          }
-        >
+        <TouchableOpacity onPress={() => setAlertVisible(true)}>
           {nutrition && <NutritionProgress data={nutrition} />}
-        </Pressable>
+        </TouchableOpacity>
 
         {renderMealSection("breakfast", "Breakfast", "8:00 AM")}
         {renderMealSection("lunch", "Lunch", "12:30 PM")}
         {renderMealSection("protein", "Protein Snack", "4:00 PM")}
         {renderMealSection("dinner", "Dinner", "7:30 PM")}
       </ScrollView>
+      <CustomAlert
+        visible={alertVisible}
+        title={"Daily calorie intake"}
+        message={
+          "Your daily calories are calculated using the Mifflin-St Jeor Formula, a science-based method to estimate how much energy your body needs. We then adjust this based on your goal (lose, maintain, or gain weight) and split the result into 50% carbs, 25% protein, and 25% fat — just what your body needs to train effectively."
+        }
+        onClose={() => setAlertVisible(false)}
+      />
     </>
   );
 };

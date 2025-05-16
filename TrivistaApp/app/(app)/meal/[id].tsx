@@ -10,15 +10,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 import { ActivityIndicator } from "react-native";
 import React, { useEffect, useState } from "react";
+import CustomAlert from "@/components/CustomAlert";
 import {
-  Alert,
   Dimensions,
   ImageBackground,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { Checkbox } from "react-native-paper";
@@ -42,6 +41,10 @@ const MealDetail = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [buttonLoading, setButtonLoading] = useState(false);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   /**
    * Fetches meal and ingredient data from Firestore.
@@ -139,7 +142,9 @@ const MealDetail = () => {
    */
   const handleSave = async () => {    
     if (selectedIds.length === 0) {
-      Alert.alert("Error", "Please select at least one ingredient");
+      setAlertTitle("Error");
+      setAlertMessage("Please select at least one ingredient.");
+      setAlertVisible(true);
       return;
     }
 
@@ -157,7 +162,9 @@ const MealDetail = () => {
       router.back();
     } catch (err) {
       setButtonLoading(false);
-      Alert.alert("Error", `Failed to save meal: ${err.message}`);
+      setAlertTitle("Error");
+      setAlertMessage(`Failed to save meal: ${err.message}`);
+      setAlertVisible(true);
     }
   };
 
@@ -189,9 +196,9 @@ const MealDetail = () => {
           style={styles.image}
           resizeMode="cover"
         >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <AntDesign name="arrowleft" size={28} color="#1e1e1e" />
-          </Pressable>
+          </TouchableOpacity>
           <LinearGradient
             colors={["#1E1E1E", "transparent"]}
             start={{ x: 0.5, y: 1 }}
@@ -229,7 +236,7 @@ const MealDetail = () => {
                   {ingredients[id]?.name || "Unknown"} ({count})
                 </Text>
                 <View style={styles.counterWrapper}>
-                  <Pressable 
+                  <TouchableOpacity 
                     onPress={() => decrement(id)} 
                     style={styles.counterButton}
                     disabled={selectedCount === 0}
@@ -238,11 +245,11 @@ const MealDetail = () => {
                       styles.counterSymbol, 
                       selectedCount === 0 ? {color: '#666'} : {color: 'white'}
                     ]}>-</Text>
-                  </Pressable>
+                  </TouchableOpacity>
                   <Text style={styles.counterNumber}>{selectedCount}</Text>
-                  <Pressable onPress={() => increment(id)} style={styles.counterButton}>
+                  <TouchableOpacity onPress={() => increment(id)} style={styles.counterButton}>
                     <Text style={styles.counterSymbol}>+</Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
               </View>
             );
@@ -267,7 +274,7 @@ const MealDetail = () => {
                       {ingredients[id]?.name || "Unknown"}
                     </Text>
                     <View style={styles.counterWrapper}>
-                      <Pressable 
+                      <TouchableOpacity 
                         onPress={() => decrement(id)} 
                         style={styles.counterButton}
                         disabled={selectedCount === 0}
@@ -276,11 +283,11 @@ const MealDetail = () => {
                           styles.counterSymbol, 
                           selectedCount === 0 ? {color: '#666'} : {color: 'white'}
                         ]}>-</Text>
-                      </Pressable>
+                      </TouchableOpacity>
                       <Text style={styles.counterNumber}>{selectedCount}</Text>
-                      <Pressable onPress={() => increment(id)} style={styles.counterButton}>
+                      <TouchableOpacity onPress={() => increment(id)} style={styles.counterButton}>
                         <Text style={styles.counterSymbol}>+</Text>
-                      </Pressable>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 );
@@ -291,25 +298,31 @@ const MealDetail = () => {
       </ScrollView>
 
       {buttonLoading ? (
-            <View style={[
-                styles.saveButton,
-              ]}>
-              <ActivityIndicator size="small" color="#1E1E1E" />
-            </View>
-          ) : (
-            <TouchableOpacity 
-              style={[
-                styles.saveButton,
-                selectedIds.length === 0 && styles.saveButtonDisabled
-              ]} 
-              onPress={handleSave}
-              disabled={selectedIds.length === 0}
-            >
-              <Text style={styles.saveButtonText}>
-                Save Meal {selectedIds.length > 0 ? `(${selectedIds.length} items)` : ''}
-              </Text>
-            </TouchableOpacity>
-          )}
+        <View style={[
+            styles.saveButton,
+          ]}>
+          <ActivityIndicator size="small" color="#1E1E1E" />
+        </View>
+      ) : (
+        <TouchableOpacity 
+          style={[
+            styles.saveButton,
+            selectedIds.length === 0 && styles.saveButtonDisabled
+          ]} 
+          onPress={handleSave}
+          disabled={selectedIds.length === 0}
+        >
+          <Text style={styles.saveButtonText}>
+            Save Meal {selectedIds.length > 0 ? `(${selectedIds.length} items)` : ''}
+          </Text>
+        </TouchableOpacity>
+      )}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </View>
   );
 };

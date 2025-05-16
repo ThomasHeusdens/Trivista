@@ -5,16 +5,15 @@
  */
 import {
   Text,
-  Pressable,
+  TouchableOpacity,
   ImageBackground,
   View,
-  Alert,
   Platform,
   Modal,
   FlatList,
-  TouchableOpacity,
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
+  ActivityIndicator,
   Keyboard,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
@@ -23,6 +22,7 @@ import { useState } from "react";
 import { db } from "@/lib/firebase-db";
 import { doc, setDoc } from "firebase/firestore";
 import { auth } from "@/lib/firebase-config";
+import CustomAlert from "@/components/CustomAlert";
 
 /**
  * Onboarding3()
@@ -35,6 +35,10 @@ export default function Onboarding3() {
   const [startDate, setStartDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   /**
    * Returns an array of the next 7 dates with formatted labels and values.
@@ -71,13 +75,14 @@ export default function Onboarding3() {
    */
   const handleContinue = async () => {
     if (!startDate) {
-      Alert.alert("Missing Selection", "Please select a start date.");
+      setAlertTitle("Missing Selection");
+      setAlertMessage("Please select a start date.");
+      setAlertVisible(true);
       return;
     }
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Error", "User not authenticated.");
       return;
     }
 
@@ -95,7 +100,9 @@ export default function Onboarding3() {
       router.push("/onboarding/page4");
     } catch (error) {
       console.error("❌ Firestore error:", error);
-      Alert.alert("Error", "Failed to save your start date. Please try again.");
+      setAlertTitle("Error");
+      setAlertMessage("Failed to save your start date. Please try again.");
+      setAlertVisible(true);
     } finally {
       setLoading(false);
     }
@@ -124,7 +131,7 @@ export default function Onboarding3() {
               </Text>
 
               {/* ✅ Picker */}
-              <Pressable
+              <TouchableOpacity
                 onPress={() => {
                   if (Platform.OS === "ios") setModalVisible(true);
                 }}
@@ -149,7 +156,7 @@ export default function Onboarding3() {
                     ))}
                   </Picker>
                 )}
-              </Pressable>
+              </TouchableOpacity>
 
               {/* Progress & Button */}
               <View className="flex-row mb-5 py-2 px-2 w-[30%] justify-between items-center">
@@ -159,15 +166,19 @@ export default function Onboarding3() {
                 <View className="bg-white w-[10px] h-[10px] rounded-[10px]" />
               </View>
 
-              <Pressable
+              <TouchableOpacity
                 onPress={handleContinue}
                 disabled={loading}
                 className="bg-[#FACC15] w-[100%] rounded-[10px] px-6 py-4 items-center"
               >
-                <Text className="text-[#1E1E1E] font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 20 }}>
-                  {loading ? "Saving..." : "NEXT"}
-                </Text>
-              </Pressable>
+                {loading ? (
+                  <ActivityIndicator color="#1E1E1E" />
+                ) : (
+                  <Text className="text-[#1E1E1E] font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 20 }}>
+                    NEXT
+                  </Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         </TouchableWithoutFeedback>
@@ -197,6 +208,12 @@ export default function Onboarding3() {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </ImageBackground>
   );
 }
