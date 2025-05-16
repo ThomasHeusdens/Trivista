@@ -17,6 +17,7 @@ import {
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { ActivityIndicator } from "react-native";
 import {
   GlassWater,
   BedDouble,
@@ -37,6 +38,9 @@ const Recover = () => {
   const router = useRouter();
   const screenHeight = Dimensions.get("window").height;
   const screenWidth = Dimensions.get("window").width;
+
+  const [loading, setLoading] = useState(true);
+  const [tipsLoaded, setTipsLoaded] = useState(false);
 
   const [tips, setTips] = useState([]);
 
@@ -77,11 +81,20 @@ const Recover = () => {
         setTips(fetched);
       } catch (err) {
         console.error("Error fetching recovery tips:", err);
+      } finally {
+        setTipsLoaded(true);
       }
     };
 
     fetchTips();
   }, [currentDay]);
+
+  useEffect(() => {
+    if (tipsLoaded) {
+      setLoading(false);
+    }
+  }, [tipsLoaded]);
+
 
   /**
    * Returns a recovery tip object by its type.
@@ -96,6 +109,14 @@ const Recover = () => {
   const sleep = getTipByType("sleep");
   const stretching = getTipByType("stretching");
   const general = getTipByType("general");
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>
+        <ActivityIndicator size="large" color="white" />
+      </View>
+    );
+  }
 
   return (
     <>

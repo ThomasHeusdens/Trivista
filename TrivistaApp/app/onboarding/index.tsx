@@ -4,7 +4,7 @@
  * Introduction screen that explains the purpose of the onboarding flow
  * and prepares the user to provide personal data.
  */
-import { Text, Pressable, ImageBackground, View, Image } from "react-native";
+import { Text, TouchableOpacity, ImageBackground, View, Image } from "react-native";
 import { router } from "expo-router";
 
 /**
@@ -42,14 +42,14 @@ export default function Onboarding1() {
           <View className="bg-white w-[10px] h-[10px] rounded-[10px]"></View>
           <View className="bg-white w-[10px] h-[10px] rounded-[10px]"></View>
         </View>
-        <Pressable
+        <TouchableOpacity
           onPress={() => router.push("/onboarding/page2")}
           className="bg-[#FACC15] w-[100%] rounded-[10px] px-6 py-4 items-center"
         >
           <Text className="text-[#1E1E1E] font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 20 }}>
             NEXT
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
     </ImageBackground>
   );

@@ -5,18 +5,16 @@
  */
 import {
   Text,
-  Pressable,
+  TouchableOpacity,
   ImageBackground,
   View,
   TextInput,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
   Modal,
-  TouchableOpacity,
   FlatList,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
@@ -25,6 +23,7 @@ import { useState } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { auth } from "@/lib/firebase-config";
 import { db } from "@/lib/firebase-db";
+import CustomAlert from "@/components/CustomAlert";
 
 /**
  * Onboarding2()
@@ -43,6 +42,10 @@ export default function Onboarding2() {
 
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [goalModalVisible, setGoalModalVisible] = useState(false);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   const genderOptions = [
     { label: "Male", value: "male" },
@@ -69,13 +72,20 @@ export default function Onboarding2() {
    * @returns {Promise<void>}
    */
   const validateAndContinue = async () => {
+    setLoading(true); 
     if (!age || !height || !weight || !gender || !compositionGoal) {
-      Alert.alert("Missing Information", "Please complete all fields.");
+      setAlertTitle("Missing Information");
+      setAlertMessage("Please complete all fields.");
+      setAlertVisible(true);
+      setLoading(false);
       return;
     }
 
     if (!isWholeNumber(age) || !isWholeNumber(height) || !isWholeNumber(weight)) {
-      Alert.alert("Invalid Input", "Age, height, and weight must be whole numbers.");
+      setAlertTitle("Invalid Input");
+      setAlertMessage("Age, height, and weight must be whole numbers.");
+      setAlertVisible(true);
+      setLoading(false);
       return;
     }
 
@@ -83,18 +93,27 @@ export default function Onboarding2() {
     const heightNum = parseInt(height);
     const weightNum = parseInt(weight);
 
-    if (ageNum > 80) {
-      Alert.alert("Invalid Age", "Age must be 80 or below.");
+    if (ageNum > 95) {
+      setAlertTitle("Invalid Age");
+      setAlertMessage("Age must be 95 or below.");
+      setAlertVisible(true);
+      setLoading(false);
       return;
     }
 
-    if (heightNum < 130 || heightNum > 230) {
-      Alert.alert("Invalid Height", "Height must be between 130 and 230 cm.");
+    if (heightNum < 120 || heightNum > 240) {
+      setAlertTitle("Invalid Height");
+      setAlertMessage("Height must be between 120 and 240 cm.");
+      setAlertVisible(true);
+      setLoading(false);
       return;
     }
 
     if (weightNum < 40 || weightNum > 160) {
-      Alert.alert("Invalid Weight", "Weight must be between 40 and 160 kg.");
+      setAlertTitle("Invalid Weight");
+      setAlertMessage("Weight must be between 40 and 160 kg.");
+      setAlertVisible(true);
+      setLoading(false);
       return;
     }
 
@@ -126,10 +145,12 @@ export default function Onboarding2() {
           Carbs: carbsGrams
         }, { merge: true });
       } catch (firestoreError) {
+        setLoading(false);
         console.error("Firestore write error:", firestoreError);
       }
     }
 
+    setLoading(false);
     router.push("/onboarding/page3");
   };
 
@@ -201,7 +222,7 @@ export default function Onboarding2() {
               ))}
 
               {/* Gender Picker */}
-              <Pressable
+              <TouchableOpacity
                 onPress={() => {
                   if (Platform.OS === "ios") setGenderModalVisible(true);
                 }}
@@ -224,10 +245,10 @@ export default function Onboarding2() {
                     ))}
                   </Picker>
                 )}
-              </Pressable>
+              </TouchableOpacity>
 
               {/* Goal Picker */}
-              <Pressable
+              <TouchableOpacity
                 onPress={() => {
                   if (Platform.OS === "ios") setGoalModalVisible(true);
                 }}
@@ -250,7 +271,7 @@ export default function Onboarding2() {
                     ))}
                   </Picker>
                 )}
-              </Pressable>
+              </TouchableOpacity>
 
               {/* Progress & Button */}
               <View className="flex-row mb-5 py-2 px-2 w-[30%] justify-between items-center">
@@ -260,7 +281,7 @@ export default function Onboarding2() {
                 <View className="bg-white w-[10px] h-[10px] rounded-[10px]" />
               </View>
 
-              <Pressable
+              <TouchableOpacity
                 onPress={validateAndContinue}
                 disabled={loading}
                 className="bg-[#FACC15] w-[100%] rounded-[10px] px-6 py-4 items-center"
@@ -272,7 +293,7 @@ export default function Onboarding2() {
                     NEXT
                   </Text>
                 )}
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </View>
         </TouchableWithoutFeedback>
@@ -281,6 +302,13 @@ export default function Onboarding2() {
       {/* iOS Picker Modals */}
       {renderOptionModal(genderModalVisible, setGenderModalVisible, genderOptions, setGender)}
       {renderOptionModal(goalModalVisible, setGoalModalVisible, goalOptions, setCompositionGoal)}
+
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </ImageBackground>
   );
 }

@@ -7,7 +7,7 @@
 import {
   ImageBackground,
   Image,
-  Pressable,
+  TouchableOpacity,
   Text,
   TextInput,
   View,
@@ -15,12 +15,13 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
-  Alert,
 } from "react-native";
 import { useState } from "react";
 import { useSession } from "@/context";
 import { router } from "expo-router";
 import { BlurView } from "expo-blur";
+import { ActivityIndicator } from "react-native";
+import CustomAlert from "@/components/CustomAlert";
 
 /**
  * Renders the registration screen UI with inputs for name, email, and password.
@@ -32,7 +33,12 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [repeatEmail, setRepeatEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const { signUp } = useSession();
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   /**
    * Validates email format with basic regex pattern.
@@ -50,34 +56,49 @@ export default function SignUp() {
    */
   const handleSignUpPress = async () => {
     if (!name || !email || !repeatEmail || !password) {
-      Alert.alert("Missing Fields", "Please fill in all the fields.");
+      setAlertTitle("Missing Fields");
+      setAlertMessage("Please fill in all the fields.");
+      setAlertVisible(true);
       return;
     }
 
     if (!isValidEmail(email)) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      setAlertTitle("Invalid Email");
+      setAlertMessage("Please enter a valid email address.");
+      setAlertVisible(true);
       return;
     }
 
     if (email !== repeatEmail) {
-      Alert.alert("Email Mismatch", "Email and repeat email do not match.");
+      setAlertTitle("Email Mismatch");
+      setAlertMessage("Email and repeat email do not match.");
+      setAlertVisible(true);
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Weak Password", "Password must be at least 6 characters.");
+      setAlertTitle("Weak Password");
+      setAlertMessage("Password must be at least 6 characters.");
+      setAlertVisible(true);
       return;
     }
 
     try {
+      setLoading(true);
       const resp = await signUp(email, password, name);
       if (resp) {
         router.replace("/(app)/");
       } else {
-        Alert.alert("Email In Use", "This email address is already associated with another account.");
+        setLoading(false);
+        setAlertTitle("Email In Use");
+        setAlertMessage("This email address is already associated with another account.");
+        setAlertVisible(true);
       }
     } catch (err) {
-      Alert.alert("Error", "Something went wrong. Please try again.");
+      setLoading(false);
+      setAlertTitle("Error");
+      setAlertMessage("Something went wrong. Please try again.");
+      setAlertVisible(true);
     }
   };
 
@@ -104,14 +125,14 @@ export default function SignUp() {
           />
 
           <View className="flex-row justify-between mb-9 w-[80%]">
-            <Pressable
+            <TouchableOpacity
               onPress={() => router.replace("/sign-in")}
               className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[45%] items-center"
             >
               <Text className="text-[#1E1E1E] font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 20 }}>
                 LOG IN
               </Text>
-            </Pressable>
+            </TouchableOpacity>
 
             <View className="bg-white/20 rounded-[10px] px-6 py-5 w-[45%] items-center">
               <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 20 }}>
@@ -171,22 +192,34 @@ export default function SignUp() {
             </BlurView>
           </View>
 
-          <Pressable
-            onPress={handleSignUpPress}
-            className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]"
-          >
-            <Text
-              className="text-center text-black text-base font-semibold font-[Bison]"
-              style={{
-                letterSpacing: 1.5,
-                fontSize: 20,
-              }}
+          {loading ? (
+            <View className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]">
+              <ActivityIndicator size="small" color="#1E1E1E" />
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={handleSignUpPress}
+              className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]"
             >
-              GET STARTED
-            </Text>
-          </Pressable>
+              <Text
+                className="text-center text-black text-base font-semibold font-[Bison]"
+                style={{
+                  letterSpacing: 1.5,
+                  fontSize: 20,
+                }}
+              >
+                GET STARTED
+              </Text>
+            </TouchableOpacity>
+          )}
         </ImageBackground>
       </TouchableWithoutFeedback>
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
