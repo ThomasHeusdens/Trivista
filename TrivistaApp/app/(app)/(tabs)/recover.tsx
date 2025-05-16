@@ -11,7 +11,6 @@ import {
   Text,
   ImageBackground,
   StyleSheet,
-  Image,
   Dimensions,
   Linking,
 } from "react-native";
@@ -27,6 +26,7 @@ import {
   Brain,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
  * Recover screen
@@ -45,6 +45,8 @@ const Recover = () => {
   const [tipsLoaded, setTipsLoaded] = useState(false);
 
   const [tips, setTips] = useState([]);
+
+  const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   /**
    * Calculates the number of days since the user created their account.
@@ -76,13 +78,48 @@ const Recover = () => {
     const fetchTips = async () => {
       if (!currentDay) return;
 
+      const todayKey = `dailyTips_${currentDay}`;
+
+      // If currentDay <= 91 → normal flow
+      if (currentDay <= 91) {
+        try {
+          const q = query(collection(db, "Recovery"), where("day", "==", currentDay));
+          const snapshot = await getDocs(q);
+          const fetched = snapshot.docs.map((doc) => doc.data());
+          setTips(fetched);
+        } catch (err) {
+          console.error("Error fetching tips for today:", err);
+        } finally {
+          setTipsLoaded(true);
+        }
+        return;
+      }
+
+      // If currentDay > 91 → try to load from cache
       try {
-        const q = query(collection(db, "Recovery"), where("day", "==", currentDay));
-        const snapshot = await getDocs(q);
-        const fetched = snapshot.docs.map((doc) => doc.data());
-        setTips(fetched);
+        const cached = await AsyncStorage.getItem(todayKey);
+        if (cached) {
+          setTips(JSON.parse(cached));
+          setTipsLoaded(true);
+          return;
+        }
+
+        // No cache found → pick new random tips
+        const snapshot = await getDocs(collection(db, "Recovery"));
+        const allTips = snapshot.docs.map((doc) => doc.data());
+
+        const categories = ["hydration", "sleep", "stretching", "general"];
+        const randomTips = categories
+          .map((type) => {
+            const matching = allTips.filter((tip) => tip.type.toLowerCase() === type);
+            return getRandomElement(matching);
+          })
+          .filter(Boolean); // remove undefined if any category had no data
+
+        setTips(randomTips);
+        await AsyncStorage.setItem(todayKey, JSON.stringify(randomTips));
       } catch (err) {
-        console.error("Error fetching recovery tips:", err);
+        console.error("Fallback error fetching tips:", err);
       } finally {
         setTipsLoaded(true);
       }
@@ -90,6 +127,7 @@ const Recover = () => {
 
     fetchTips();
   }, [currentDay]);
+
 
   useEffect(() => {
     if (tipsLoaded) {
