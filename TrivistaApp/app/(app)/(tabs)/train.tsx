@@ -7,10 +7,9 @@ import {
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Dimensions,
   ImageBackground,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Text,
@@ -186,7 +185,7 @@ const Train = () => {
         (t) => t.day === dayIndex && ["run", "bike", "swim", "mix"].includes(t.type)
       );
       days.push(
-        <Pressable
+        <TouchableOpacity
           key={i}
           style={{ alignItems: "center", flex: 1 }}
           onPress={() => setSelectedDay(dayIndex)}
@@ -209,7 +208,7 @@ const Train = () => {
               marginTop: 4,
             }} />
           )}
-        </Pressable>
+        </TouchableOpacity>
       );
     }
 
@@ -224,23 +223,23 @@ const Train = () => {
           </Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Pressable
+          <TouchableOpacity
             onPress={() => currentWeek > 0 && setCurrentWeek((w) => Math.max(w - 1, 0))}
             style={{ opacity: currentWeek > 0 ? 1 : 0.3 }}
           >
             <Text style={{ padding: 5, backgroundColor: "#FACC15", borderRadius: 10, color: "#1e1e1e", fontSize: 18, fontFamily: "Bison" }}>{"<"}</Text>
-          </Pressable>
+          </TouchableOpacity>
 
           <View style={{ flexDirection: "row", flex: 1, justifyContent: "space-around" }}>
             {days}
           </View>
 
-          <Pressable
+          <TouchableOpacity
             onPress={() => currentWeek < 11 && setCurrentWeek((w) => Math.min(w + 1, 11))}
             style={{ opacity: currentWeek < 11 ? 1 : 0.3 }}
           >
             <Text style={{ padding: 5, backgroundColor: "#FACC15", borderRadius: 10, color: "#1e1e1e", fontSize: 18, fontFamily: "Bison" }}>{">"}</Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -314,7 +313,7 @@ const Train = () => {
                 <Text className="text-base text-[#b4b4b4] font-[InterRegular]">Kilometer</Text>
               </View>
             </View>
-            <Pressable 
+            <TouchableOpacity 
               style={[
                 styles.saveButton,
               ]} 
@@ -323,7 +322,7 @@ const Train = () => {
               <Text style={styles.saveButtonText}>
                 See Details
               </Text>
-            </Pressable>
+            </TouchableOpacity>
             <CustomAlert
               visible={alertVisible}
               title={"Training Details"}

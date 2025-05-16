@@ -11,9 +11,11 @@ import {
   Text,
   ImageBackground,
   StyleSheet,
+  Image,
   Dimensions,
   Linking,
 } from "react-native";
+import StretchingIcon from "@/components/StretchingIcon";
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -143,7 +145,7 @@ const Recover = () => {
             <Text className="text-[#B4B4B4] text-sm font-[InterRegular] ml-2">Post-training stretching helps your muscles recover faster, reduces soreness, and improves flexibility over time.</Text>
           </View>
           <Pressable onPress={() => router.push("stretch")} className="w-[20%] aspect-square items-center justify-center bg-[#FACC15] rounded-[10px]">
-            <StretchHorizontal size={30} color="#1e1e1e" />
+            <StretchingIcon size={50} color={"#1e1e1e"} />
           </Pressable>
         </View>
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Modal, Pressable, StyleSheet } from "react-native";
+import { View, Text, Modal, TouchableOpacity, StyleSheet } from "react-native";
 
 const CustomAlert = ({ visible, title, message, onClose }) => {
   return (
@@ -13,9 +13,9 @@ const CustomAlert = ({ visible, title, message, onClose }) => {
         <View style={styles.container}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
-          <Pressable onPress={onClose} style={styles.button}>
+          <TouchableOpacity onPress={onClose} style={styles.button}>
             <Text style={styles.buttonText}>OK</Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
