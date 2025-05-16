@@ -3,14 +3,14 @@ import { db } from "@/lib/firebase-db";
 import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore";
 import {
   LandPlot,
-  Timer
+  Timer,
+  Trophy
 } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Dimensions,
   ImageBackground,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,6 +24,7 @@ import Animated, {
 import { ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import CustomAlert from "@/components/CustomAlert";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Train = () => {
   const { user } = useSession();
@@ -37,30 +38,14 @@ const Train = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [trainingVideos, setTrainingVideos] = useState([]);
   const [randomVideos, setRandomVideos] = useState([]);
+  const [isTrainingCompleted, setIsTrainingCompleted] = useState(false);
+  const [randomTrainingVideo, setRandomTrainingVideo] = useState(null);
   const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;
 
   const [alertVisible, setAlertVisible] = useState(false);
-  const [alertTitle, setAlertTitle] = useState("");
-  const [alertMessage, setAlertMessage] = useState("");
 
   const progress = useSharedValue(0);
-
-  useEffect(() => {
-    const computeDays = async () => {
-      if (!user) return;
-      const createdAt = new Date(user.metadata.creationTime);
-      const today = new Date();
-      createdAt.setHours(0, 0, 0, 0);
-      today.setHours(0, 0, 0, 0);
-      const daysSinceCreation = Math.floor(
-        (today - createdAt) / (1000 * 60 * 60 * 24)
-      ) + 1;
-      setAppDay(daysSinceCreation);
-      progress.value = withTiming(daysSinceCreation / 91, { duration: 800 });
-    };
-    computeDays();
-  }, [user]);
 
   useEffect(() => {
     const fetchTrainingDay = async () => {
@@ -78,23 +63,45 @@ const Train = () => {
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
         const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
-        if (diff < 0) {
+        
+        // Check if we've completed the training program (85+ days)
+        if (diff >= 84) {
+          setIsTrainingCompleted(true);
+          setTrainingDay(85); // Setting to day 85 to indicate completion
+          setSelectedDay(85);
+        } else if (diff < 0) {
           setTrainingDay(null);
         } else {
           setTrainingDay(diff + 1);
           setSelectedDay(diff + 1);
           setCurrentWeek(Math.floor(diff / 7));
         }
+        
+        // Calculate training end day
         const trainingEndDate = new Date(start);
         trainingEndDate.setUTCDate(trainingEndDate.getUTCDate() + 84);
         const daysUntilTrainingEnds = Math.floor(
           (trainingEndDate - createdAt) / (1000 * 60 * 60 * 24)
         );
         setTrainingEndDay(daysUntilTrainingEnds);
+        
+        // Calculate app days and update progress here - AFTER we have trainingEndDay
+        const daysSinceCreation = Math.floor(
+          (today - createdAt) / (1000 * 60 * 60 * 24)
+        ) + 1;
+        setAppDay(daysSinceCreation);
+        
+        // Handle progress bar animation - Now we're sure trainingEndDay is calculated
+        if (daysSinceCreation >= daysUntilTrainingEnds) {
+          progress.value = withTiming(1, { duration: 800 });
+        } else {
+          progress.value = withTiming(daysSinceCreation / daysUntilTrainingEnds, { duration: 800 });
+        }
       } catch (err) {
         console.error("Error getting start date:", err);
       }
     };
+
     fetchTrainingDay();
   }, [user]);
 
@@ -104,7 +111,7 @@ const Train = () => {
         const colSnap = await getDocs(collection(db, "Training"));
         const all = colSnap.docs.map((doc) => doc.data());
         setAllTrainings(all);
-        if (trainingDay) {
+        if (trainingDay && trainingDay <= 84) {
           const todayTraining = all.find((t) => t.day === trainingDay);
           setTrainingData(todayTraining);
         }
@@ -116,7 +123,7 @@ const Train = () => {
   }, [trainingDay]);
 
   useEffect(() => {
-    if (selectedDay && allTrainings.length > 0) {
+    if (selectedDay && selectedDay <= 84 && allTrainings.length > 0) {
       const selected = allTrainings.find((t) => t.day === selectedDay);
       setTrainingData(selected);
     }
@@ -127,14 +134,56 @@ const Train = () => {
       try {
         const trainingSnap = await getDocs(collection(db, "TrainingVideos"));
         const randomSnap = await getDocs(query(collection(db, "RandomVideos"), orderBy("iframe")));
-        setTrainingVideos(trainingSnap.docs.map((doc) => doc.data()));
-        setRandomVideos(randomSnap.docs.map((doc) => doc.data()));
+        
+        const trainingVideosData = trainingSnap.docs.map((doc) => doc.data());
+        setTrainingVideos(trainingVideosData);
+        
+        const randomVideosData = randomSnap.docs.map((doc) => doc.data());
+        setRandomVideos(randomVideosData);
+        
+        // Handle post-completion random video using AsyncStorage
+        if (isTrainingCompleted) {
+          await fetchOrCreateDailyRandomVideo(trainingVideosData);
+        }
       } catch (err) {
         console.error("Failed to fetch videos", err);
       }
     };
     fetchVideos();
-  }, []);
+  }, [isTrainingCompleted]);
+
+  // Function to fetch stored video or create a new one for the day
+  const fetchOrCreateDailyRandomVideo = async (trainingVideosArray) => {
+    if (!trainingVideosArray || trainingVideosArray.length === 0) return;
+    
+    try {
+      // Create a date key in the format YYYY-MM-DD
+      const today = new Date();
+      const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const storageKey = `postTrainingVideo_${dateKey}`;
+      
+      // Try to get stored video for today
+      const storedVideo = await AsyncStorage.getItem(storageKey);
+      
+      if (storedVideo) {
+        // If we have a stored video for today, use it
+        setRandomTrainingVideo(JSON.parse(storedVideo));
+      } else {
+        // If no stored video for today, select a random one and store it
+        const randomIndex = Math.floor(Math.random() * trainingVideosArray.length);
+        const selectedVideo = trainingVideosArray[randomIndex];
+        setRandomTrainingVideo(selectedVideo);
+        
+        // Store the selected video for today
+        await AsyncStorage.setItem(storageKey, JSON.stringify(selectedVideo));
+      }
+    } catch (err) {
+      console.error("Error handling daily random video:", err);
+      // Fallback to random selection if AsyncStorage fails
+      const randomIndex = Math.floor(Math.random() * trainingVideosArray.length);
+      setRandomTrainingVideo(trainingVideosArray[randomIndex]);
+    }
+  };
 
   const animatedBarStyle = useAnimatedStyle(() => ({
     width: `${Math.min(progress.value * 100, 100)}%`,
@@ -143,6 +192,7 @@ const Train = () => {
   const renderVideo = () => {
     if (!user) return null;
 
+    // Case 1: Before training start date
     if (trainingDay === null) {
       const createdAt = new Date(user.metadata.creationTime);
       const today = new Date();
@@ -156,7 +206,17 @@ const Train = () => {
           <WebView source={{ uri: video.iframe }} style={{ flex: 1 }} allowsInlineMediaPlayback={true} mediaPlaybackRequiresUserAction={false} />
         </View>
       ) : null;
-    } else {
+    } 
+    // Case 2: After training completion (day 85+)
+    else if (isTrainingCompleted && randomTrainingVideo) {
+      return (
+        <View style={{ height: 200, marginTop: 12, borderRadius: 12, overflow: "hidden" }}>
+          <WebView source={{ uri: randomTrainingVideo.iframe }} style={{ flex: 1 }} allowsInlineMediaPlayback={true} mediaPlaybackRequiresUserAction={false} />
+        </View>
+      );
+    } 
+    // Case 3: During normal training (days 1-84)
+    else {
       const video = trainingVideos.find((v) => v.day === selectedDay);
       return video ? (
         <View style={{ height: 200, marginTop: 12, borderRadius: 12, overflow: "hidden" }}>
@@ -168,6 +228,10 @@ const Train = () => {
 
   const renderWeekDays = () => {
     if (!startDate || trainingDay === null) return null;
+    
+    // Don't show week selector after training completion
+    if (isTrainingCompleted) return null;
+    
     const weekStart = new Date(startDate);
     weekStart.setUTCDate(weekStart.getUTCDate() + currentWeek * 7);
     const today = new Date();
@@ -186,7 +250,7 @@ const Train = () => {
         (t) => t.day === dayIndex && ["run", "bike", "swim", "mix"].includes(t.type)
       );
       days.push(
-        <Pressable
+        <TouchableOpacity
           key={i}
           style={{ alignItems: "center", flex: 1 }}
           onPress={() => setSelectedDay(dayIndex)}
@@ -209,7 +273,7 @@ const Train = () => {
               marginTop: 4,
             }} />
           )}
-        </Pressable>
+        </TouchableOpacity>
       );
     }
 
@@ -224,24 +288,56 @@ const Train = () => {
           </Text>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <Pressable
+          <TouchableOpacity
             onPress={() => currentWeek > 0 && setCurrentWeek((w) => Math.max(w - 1, 0))}
             style={{ opacity: currentWeek > 0 ? 1 : 0.3 }}
           >
             <Text style={{ padding: 5, backgroundColor: "#FACC15", borderRadius: 10, color: "#1e1e1e", fontSize: 18, fontFamily: "Bison" }}>{"<"}</Text>
-          </Pressable>
+          </TouchableOpacity>
 
           <View style={{ flexDirection: "row", flex: 1, justifyContent: "space-around" }}>
             {days}
           </View>
 
-          <Pressable
+          <TouchableOpacity
             onPress={() => currentWeek < 11 && setCurrentWeek((w) => Math.min(w + 1, 11))}
             style={{ opacity: currentWeek < 11 ? 1 : 0.3 }}
           >
             <Text style={{ padding: 5, backgroundColor: "#FACC15", borderRadius: 10, color: "#1e1e1e", fontSize: 18, fontFamily: "Bison" }}>{">"}</Text>
-          </Pressable>
+          </TouchableOpacity>
         </View>
+      </View>
+    );
+  };
+
+  // Render post-training completion content
+  const renderCompletedTraining = () => {
+    return (
+      <View>
+        <View style={styles.congratsContainer}>
+          <Trophy color="#FACC15" size={60} />
+          <Text className="text-2xl font-[InterBold] text-center text-white mb-2 mt-4">
+            Training Completed!
+          </Text>
+          <Text className="text-[#B4B4B4] text-base text-center mb-4 font-[InterRegular]">
+            Congratulations on completing your 84-day triathlon training program!
+          </Text>
+        </View>
+        {renderVideo()}
+        <TouchableOpacity 
+          style={[styles.saveButton]} 
+          onPress={() => setAlertVisible(true)}
+        >
+          <Text style={styles.saveButtonText}>
+            Maintenance Tip
+          </Text>
+        </TouchableOpacity>
+        <CustomAlert
+          visible={alertVisible}
+          title={"Maintenance Training"}
+          message={"Continue with regular exercise to maintain your fitness level. Mix up your training with swimming, biking, and running sessions throughout the week to keep your triathlon skills sharp. Remember to include both endurance and intensity workouts."}
+          onClose={() => setAlertVisible(false)}
+        />
       </View>
     );
   };
@@ -262,17 +358,25 @@ const Train = () => {
       <ScrollView contentContainerStyle={{ padding: 25, paddingTop: 122, paddingBottom: 82 }}>
         <View className="flex-row items-center justify-between mb-2 relative">
           <View className="flex-1 left-0">
-            <Text className="text-base text-white font-[InterRegular]">Day {appDay}</Text>
+            {isTrainingCompleted ? (
+              <Text className="text-lg text-center text-white font-[InterBold]">Good luck with your triathlon journey!</Text>
+            ) : appDay >= trainingEndDay ? (
+              <Text className="text-base text-center text-white font-[InterRegular]">Triathlon Day</Text>
+            ) : (
+              <Text className="text-base text-white font-[InterRegular]">Day {appDay}</Text>
+            )}
           </View>
-          {trainingEndDay && (
+          {trainingEndDay && appDay < trainingEndDay && (
             <Text className="text-base text-[#B4B4B4] font-[InterRegular] absolute right-0">
               /{trainingEndDay}
             </Text>
           )}
         </View>
-        <View style={styles.dayBarContainer}>
-          <Animated.View style={[styles.dayBarFill, animatedBarStyle]} />
-        </View>
+        {!isTrainingCompleted && (
+          <View style={styles.dayBarContainer}>
+            <Animated.View style={[styles.dayBarFill, animatedBarStyle]} />
+          </View>
+        )}
 
         {trainingDay !== null && renderWeekDays()}
 
@@ -284,6 +388,8 @@ const Train = () => {
             </Text>
             {renderVideo()}
           </View>
+        ) : isTrainingCompleted ? (
+          renderCompletedTraining()
         ) : trainingData ? (
           <View>
             <Text className="text-2xl font-[InterBold] text-center text-white mb-2">
@@ -314,7 +420,7 @@ const Train = () => {
                 <Text className="text-base text-[#b4b4b4] font-[InterRegular]">Kilometer</Text>
               </View>
             </View>
-            <Pressable 
+            <TouchableOpacity 
               style={[
                 styles.saveButton,
               ]} 
@@ -323,7 +429,7 @@ const Train = () => {
               <Text style={styles.saveButtonText}>
                 See Details
               </Text>
-            </Pressable>
+            </TouchableOpacity>
             <CustomAlert
               visible={alertVisible}
               title={"Training Details"}
@@ -385,6 +491,13 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#B4B4B4",
     fontSize: 14,
+  },
+  congratsContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 15,
   },
 });
 

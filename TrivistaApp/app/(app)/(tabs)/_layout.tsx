@@ -13,9 +13,9 @@ import {
   Apple,
   Dumbbell,
   HeartHandshake,
-  StretchHorizontal,
 } from "lucide-react-native";
 import { DrawerNavigationProp } from "@react-navigation/drawer";
+import StretchingIcon from "@/components/StretchingIcon";
 
 /**
  * TabLayout()
@@ -100,7 +100,7 @@ export default function TabLayout() {
         options={{
           title: "STRETCH",
           tabBarIcon: ({ color }) => (
-            <StretchHorizontal color={color} size={28} />
+            <StretchingIcon size={28} color={color} />
           ),
         }}
       />
