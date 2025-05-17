@@ -23,6 +23,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
+import CustomTrainAlert from "@/components/CustomTrainingAlert";
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -430,7 +431,7 @@ const Train = () => {
                 See Details
               </Text>
             </TouchableOpacity>
-            <CustomAlert
+            <CustomTrainAlert
               visible={alertVisible}
               title={"Training Details"}
               message={trainingData.description}

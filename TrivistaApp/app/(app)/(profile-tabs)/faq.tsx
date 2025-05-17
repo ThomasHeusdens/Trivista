@@ -9,7 +9,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   FlatList,
   Dimensions,
   Animated,
@@ -137,23 +137,22 @@ const FAQ = () => {
             paddingHorizontal: 15,
         }}
         renderItem={({ item, index }) => (
-            <Pressable onPress={() => toggleItem(index)} style={{ marginBottom: 12 }}>
+          <TouchableOpacity onPress={() => toggleItem(index)} style={{ marginBottom: 12 }}>
             <BlurView intensity={60} tint="light" style={styles.card}>
-                <View style={styles.row}>
+              <View style={styles.row}>
                 <Text style={styles.question}>{item.question}</Text>
                 <Animated.View style={{ transform: [{ rotate: getRotation(index) }] }}>
-                    <ChevronDown color="white" size={24} />
+                  <ChevronDown color="white" size={24} />
                 </Animated.View>
-                </View>
-
-                {openIndex === index && (
+              </View>
+              {openIndex === index && (
                 <>
-                    <View style={styles.separator} />
-                    <Text style={styles.answer}>{item.answer}</Text>
+                  <View style={styles.separator} />
+                  <Text style={styles.answer}>{item.answer}</Text>
                 </>
-                )}
+              )}
             </BlurView>
-            </Pressable>
+          </TouchableOpacity>
         )}
         />
 

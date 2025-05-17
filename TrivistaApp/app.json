@@ -11,7 +11,10 @@
     "backgroundColor": "#1E1E1E",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.trivista.app"
+      "bundleIdentifier": "com.trivista.app",
+      "infoPlist": {
+        "UIBackgroundModes": ["location"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +22,18 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.trivista.app"
+      "package": "com.trivista.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCmLOVetkcP7CtFBNpkbpzkZMCyN84IzGg"
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -39,7 +53,16 @@
           "backgroundColor": "#000000"
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow App to use your location even when the app is in the background.",
+          "locationWhenInUsePermission": "Allow App to use your location when the app is in use.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -5,7 +5,7 @@
  * with custom top/bottom navigation and logout support.
  */
 import { Tabs, router } from "expo-router";
-import { Pressable, Text } from "react-native";
+import { TouchableOpacity, Text } from "react-native";
 import { useSession } from "@/context";
 import {
   Plus,
@@ -62,20 +62,20 @@ export default function ProfileTabLayout() {
           </Text>
         ),
         headerLeft: () => (
-          <Pressable
-            onPress={() => router.replace("/(app)/")}
+          <TouchableOpacity
+            onPress={() => router.back()}
             style={{ marginLeft: 20, transform: [{ rotate: "-135deg" }] }}
           >
             <Plus color="white" size={40} />
-          </Pressable>
+          </TouchableOpacity>
         ),
         headerRight: () => (
-          <Pressable onPress={handleLogout} style={{ marginRight: 25 }}>
+          <TouchableOpacity onPress={handleLogout} style={{ marginRight: 25 }}>
             <LogOut color="white" size={30} />
-          </Pressable>
+          </TouchableOpacity>
         ),
         tabBarStyle: {
-          backgroundColor: "#1E1E1E", // ✅ make tab bar see-through
+          backgroundColor: "#1E1E1E", 
           height: 80,
           paddingBottom: 8,
           paddingTop: 8,
