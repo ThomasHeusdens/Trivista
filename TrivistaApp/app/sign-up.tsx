@@ -220,6 +220,11 @@ export default function SignUp() {
         message={alertMessage}
         onClose={() => setAlertVisible(false)}
       />
+      <Image
+        source={require("@/assets/images/triathlon-logo.png")}
+        className="w-[100%] h-[40px] top-[50px] absolute"
+        resizeMode="contain"
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -8,24 +8,37 @@ import {
   ActivityIndicator,
   Dimensions,
 } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
+import MapView, { PROVIDER_GOOGLE, Region, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
-import { ArrowLeft, Info, Bike, Play, PencilRuler, Volume2 } from "lucide-react-native";
+import { ArrowLeft, Info, Play, Pause, StopCircle, PencilRuler, Volume2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import CustomAlert from "@/components/CustomAlert";
 import { useSession } from "@/context";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase-db";
+import * as geolib from 'geolib';
 
 const MapScreen = () => {
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [region, setRegion] = useState<Region | null>(null);
+  const [location, setLocation] = useState(null);
+  const [region, setRegion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [alertVisible, setAlertVisible] = useState(false);
   const [trainingData, setTrainingData] = useState(null);
   const [selectedType, setSelectedType] = useState("run");
+  const [tracking, setTracking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [distance, setDistance] = useState(0);
+  const [pace, setPace] = useState(0);
+  const [startTime, setStartTime] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [routeCoords, setRouteCoords] = useState([]);
+
   const router = useRouter();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef(null);
+  const watchId = useRef(null);
+  const timerInterval = useRef(null);
+  const lastLocation = useRef(null);
+  const pausedTime = useRef(null);
   const { user } = useSession();
 
   useEffect(() => {
@@ -54,6 +67,38 @@ const MapScreen = () => {
   }, []);
 
   useEffect(() => {
+    let idleWatcher;
+
+    const followUser = async () => {
+      idleWatcher = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 3000,
+          distanceInterval: 10,
+        },
+        (loc) => {
+          if (!tracking) {
+            setLocation(loc);
+            mapRef.current?.animateToRegion({
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            });
+          }
+        }
+      );
+    };
+
+    followUser();
+
+    return () => {
+      if (idleWatcher) idleWatcher.remove();
+    };
+  }, [tracking]);
+
+
+  useEffect(() => {
     const fetchTraining = async () => {
       try {
         const docRef = doc(db, "UserStartDate", user.uid);
@@ -76,16 +121,188 @@ const MapScreen = () => {
     if (user) fetchTraining();
   }, [user]);
 
-  const centerMap = () => {
-    if (mapRef.current && location) {
-      mapRef.current.animateToRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
+  useEffect(() => {
+    if (tracking && !isPaused) {
+      if (!startTime) {
+        setStartTime(new Date());
+      }
+      
+      timerInterval.current = setInterval(() => {
+        setElapsedTime((prev) => prev + 1);
+      }, 1000);
+
+      startLocationTracking();
+    } else {
+      stopLocationTracking();
+      if (timerInterval.current) {
+        clearInterval(timerInterval.current);
+        timerInterval.current = null;
+      }
+    }
+
+    return () => {
+      stopLocationTracking();
+      if (timerInterval.current) {
+        clearInterval(timerInterval.current);
+        timerInterval.current = null;
+      }
+    };
+  }, [tracking, isPaused]);
+
+  const startLocationTracking = async () => {
+    try {
+      const subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 1000,
+          distanceInterval: 1,
+        },
+        (loc) => {
+          const { latitude, longitude } = loc.coords;
+          const newCoord = { latitude, longitude };
+
+          setLocation(loc);
+          setRouteCoords((prev) => [...prev, newCoord]);
+
+          mapRef.current?.animateToRegion({
+            latitude,
+            longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+
+          if (lastLocation.current) {
+            const dx = geolib.getDistance(
+              { latitude: lastLocation.current.latitude, longitude: lastLocation.current.longitude },
+              { latitude, longitude }
+            );
+
+            if (dx > 1) {
+              console.log(`Distance increment: ${dx} meters`);
+              setDistance((prev) => prev + dx);
+            }
+          }
+
+          lastLocation.current = { latitude, longitude };
+        }
+      );
+
+      watchId.current = subscription;
+    } catch (error) {
+      console.error("Error starting location tracking:", error);
     }
   };
+
+  const stopLocationTracking = () => {
+    if (watchId.current) {
+      watchId.current.remove();
+      watchId.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (elapsedTime > 0 && distance > 0) {
+      const paceValue = (elapsedTime / 60) / (distance / 1000);
+      if (isFinite(paceValue) && paceValue > 0) {
+        setPace(paceValue);
+      }
+    }
+  }, [elapsedTime, distance]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatPace = (paceMinPerKm) => {
+    if (!isFinite(paceMinPerKm) || paceMinPerKm <= 0) return "--:--";
+
+    const mins = Math.floor(paceMinPerKm);
+    const secs = Math.floor((paceMinPerKm - mins) * 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const startActivity = async () => {
+    setElapsedTime(0);
+    setDistance(0);
+    setPace(0);
+    setRouteCoords([]);
+    setIsPaused(false);
+
+    try {
+      const initialPosition = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation
+      });
+
+      if (initialPosition) {
+        const { latitude, longitude } = initialPosition.coords;
+        lastLocation.current = { latitude, longitude };
+        setLocation(initialPosition);
+        console.log("Starting location:", lastLocation.current);
+      }
+    } catch (error) {
+      console.error("Failed to get initial position:", error);
+    }
+
+    setTracking(true);
+  };
+
+  const pauseActivity = () => {
+    setIsPaused(true);
+    pausedTime.current = new Date();
+    console.log("Activity paused");
+  };
+
+  const resumeActivity = async () => {
+    try {
+      const currentPosition = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation
+      });
+
+      if (currentPosition) {
+        const { latitude, longitude } = currentPosition.coords;
+        lastLocation.current = { latitude, longitude };
+        setLocation(currentPosition);
+        console.log("Resuming from location:", lastLocation.current);
+      }
+    } catch (error) {
+      console.error("Failed to get position for resume:", error);
+    }
+
+    setIsPaused(false);
+    console.log("Activity resumed");
+  };
+
+  const stopActivity = () => {
+    const finalTime = elapsedTime;
+    const finalDistance = distance;
+    const finalPace = pace;
+    const finalCoords = [...routeCoords]; 
+
+    setTracking(false);
+    setIsPaused(false);
+    setStartTime(null);
+
+    router.push({
+      pathname: "/(app)/session/session-summary",
+      params: {
+        time: finalTime.toString(),
+        distance: finalDistance.toString(),
+        pace: finalPace.toString(),
+        coords: JSON.stringify(finalCoords),
+        type: selectedType,
+      },
+    });
+
+    setTimeout(() => {
+      setElapsedTime(0);
+      setDistance(0);
+      setPace(0);
+      setRouteCoords([]);
+    }, 500);
+  };
+
 
   if (loading || !region) {
     return (
@@ -97,18 +314,18 @@ const MapScreen = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Top navigation */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <ArrowLeft color="white" size={28} />
-        </TouchableOpacity>
-        <Text style={styles.topBarTitle}>TRAINING</Text>
-        <TouchableOpacity onPress={() => setAlertVisible(true)}>
-          <Info color="white" size={28} />
-        </TouchableOpacity>
-      </View>
+      {!tracking && (
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <ArrowLeft color="white" size={28} />
+          </TouchableOpacity>
+          <Text style={styles.topBarTitle}>TRAINING</Text>
+          <TouchableOpacity onPress={() => setAlertVisible(true)}>
+            <Info color="white" size={28} />
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {/* Map */}
       <MapView
         ref={mapRef}
         provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
@@ -116,53 +333,72 @@ const MapScreen = () => {
         region={region}
         showsUserLocation={true}
       >
-        <Marker
-          coordinate={{
-            latitude: location?.coords.latitude ?? 0,
-            longitude: location?.coords.longitude ?? 0,
-          }}
-          title="You started here"
-        />
+        <Polyline coordinates={routeCoords} strokeWidth={5} strokeColor="#FACC15" />
       </MapView>
 
-      {/* Center map button */}
-      <TouchableOpacity style={styles.centerButton} onPress={centerMap}>
-        <Text style={{ color: "#1E1E1E", fontFamily: "Bison", fontSize: 16, letterSpacing: 1.5 }}>Center</Text>
-      </TouchableOpacity>
-
-      {/* Bottom bar with icons */}
-      <View style={styles.bottomBar}>
-        <View style={styles.navButtonContainer}>
-          <TouchableOpacity style={styles.iconButton}>
-            <PencilRuler color="#1E1E1E" size={24} />
-          </TouchableOpacity>
+      {tracking && (
+        <View style={styles.trackingBar}>
+          <Text style={styles.statText}>Time: {formatTime(elapsedTime)}</Text>
+          <Text style={styles.statText}>Dist: {(distance / 1000).toFixed(2)} km</Text>
+          <Text style={styles.statText}>Pace: {formatPace(pace)}</Text>
+          {isPaused && (
+            <Text style={[styles.statText, styles.pausedText]}>PAUSED</Text>
+          )}
         </View>
+      )}
 
-        <View style={styles.iconGroup}>
-          <TouchableOpacity onPress={() => setSelectedType("bike")}>
-            <Text style={{ fontSize: 22, color: selectedType === "bike" ? "#FACC15" : "white", fontFamily: "Bison" }}>BIKE</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setSelectedType("run")}>
-            <Text style={{ fontSize: 22, color: selectedType === "run" ? "#FACC15" : "white", fontFamily: "Bison" }}>RUN</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setSelectedType("swim")}>
-            <Text style={{ fontSize: 22, color: selectedType === "swim" ? "#FACC15" : "white", fontFamily: "Bison" }}>SWIM</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={[styles.bottomBar, tracking ? styles.bottomBarTracking : styles.bottomBarDefault]}>
+        {tracking ? (
+          <>
+            <TouchableOpacity 
+              style={styles.pauseButton} 
+              onPress={isPaused ? resumeActivity : pauseActivity}
+            >
+              {isPaused ? (
+                <Play color="#1E1E1E" size={28} />
+              ) : (
+                <Pause color="#1E1E1E" size={28} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.stopButton} onPress={stopActivity}>
+              <StopCircle color="#1E1E1E" size={28} />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <View style={styles.navButtonContainer}>
+              <TouchableOpacity style={styles.iconButton}>
+                <PencilRuler color="#1E1E1E" size={24} />
+              </TouchableOpacity>
+            </View>
 
-        <View style={styles.navButtonContainer}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Volume2 color="#1E1E1E" size={24} />
-          </TouchableOpacity>
-        </View>
+            <View style={styles.iconGroup}>
+              <TouchableOpacity onPress={() => setSelectedType("bike")}>
+                <Text style={{ fontSize: 22, color: selectedType === "bike" ? "#FACC15" : "white", fontFamily: "Bison" }}>BIKE</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setSelectedType("run")}>
+                <Text style={{ fontSize: 22, color: selectedType === "run" ? "#FACC15" : "white", fontFamily: "Bison" }}>RUN</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setSelectedType("swim")}>
+                <Text style={{ fontSize: 22, color: selectedType === "swim" ? "#FACC15" : "white", fontFamily: "Bison" }}>SWIM</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.navButtonContainer}>
+              <TouchableOpacity style={styles.iconButton}>
+                <Volume2 color="#1E1E1E" size={24} />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </View>
 
-      {/* Play button */}
-      <TouchableOpacity style={styles.playButton}>
-        <Play color="#1E1E1E" size={28} />
-      </TouchableOpacity>
+      {!tracking && (
+        <TouchableOpacity style={styles.playButton} onPress={startActivity}>
+          <Play color="#1E1E1E" size={28} />
+        </TouchableOpacity>
+      )}
 
-      {/* Alert for training details */}
       <CustomAlert
         visible={alertVisible}
         title={trainingData?.title || "Training of the Day"}
@@ -173,6 +409,8 @@ const MapScreen = () => {
   );
 };
 
+const { width, height } = Dimensions.get("window");
+
 const styles = StyleSheet.create({
   map: {
     flex: 1,
@@ -182,20 +420,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#1E1E1E",
-  },
-  centerButton: {
-    position: "absolute",
-    bottom: 155,
-    right: 25,
-    backgroundColor: "#FACC15",
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   topBar: {
     position: "absolute",
@@ -222,12 +446,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 140,
     backgroundColor: "#1E1E1E",
     flexDirection: "row",
     justifyContent: "space-between",
     paddingHorizontal: 25,
     alignItems: "flex-start",
+  },
+  bottomBarTracking: {
+    height: 100,
+  },
+  bottomBarDefault: {
+    height: 140,
   },
   navButtonContainer: {
     height: 40,
@@ -256,6 +485,56 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  stopButton: {
+    position: "absolute",
+    right: "38%",
+    bottom: 22,
+    backgroundColor: "#FACC15",
+    padding: 16,
+    borderRadius: 50,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  pauseButton: {
+    position: "absolute",
+    left:"38%",
+    bottom: 22,
+    backgroundColor: "#FACC15",
+    padding: 16,
+    borderRadius: 50,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  trackingBar: {
+    position: "absolute",
+    bottom: 115,
+    left: 25,
+    right: 25,
+    backgroundColor: "#1E1E1E",
+    padding: 12,
+    borderRadius: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+  },
+  statText: {
+    color: "white",
+    fontFamily: "InterRegular",
+    fontSize: 14,
+  },
+  pausedText: {
+    color: "#FACC15",
+    fontWeight: "bold",
+    position: "absolute",
+    right: 12,
+    top: -22,
   },
 });
 
