@@ -69,7 +69,7 @@ const SessionSummary = () => {
         type: selectedType,
         feeling,
         time: Number(time),
-        distance: Number(distance),
+        distance: (Number(distance) / 1000).toFixed(2),
         pace: Number(pace),
         coords: parsedCoords,
         createdAt: new Date().toISOString(),
@@ -92,6 +92,7 @@ const SessionSummary = () => {
           <Trash2 color="white" size={28} />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>SAVE IT</Text>
+        <View style={{ width: 28 }} />
       </View>
       <View key={"name"} className="rounded-[10px] overflow-hidden border border-[#FACC15] mb-4 w-[90%] bg-white/10">
         <TextInput

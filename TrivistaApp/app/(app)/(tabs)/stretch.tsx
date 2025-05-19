@@ -79,7 +79,6 @@ const Stretch = () => {
     await sound.playAsync();
   };
 
-  // Function to check if today's date matches the given timestamp
   const isToday = (timestamp) => {
     if (!timestamp) return false;
     
@@ -92,7 +91,6 @@ const Stretch = () => {
     return today.getTime() === date.getTime();
   };
 
-  // Check if stretching is completed for today
   const checkStretchingCompletion = async () => {
     if (!user) return;
     
@@ -115,7 +113,6 @@ const Stretch = () => {
     }
   };
 
-  // Save stretching completion to Firestore
   const saveStretchingCompletion = async () => {
     if (!user) return;
     
@@ -180,11 +177,9 @@ const Stretch = () => {
         setRandomVideos(randomVideosData);
         
         if (randomVideosData.length > 0) {
-          // If startDate is available, calculate the day difference for consistent randomization
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           
-          // Using a deterministic way to select a video, similar to Train component
           if (user) {
             const createdAt = new Date(user.metadata.creationTime);
             createdAt.setHours(0, 0, 0, 0);
@@ -192,7 +187,6 @@ const Stretch = () => {
             const index = daysWaiting % randomVideosData.length;
             setSelectedRandomVideo(randomVideosData[index]);
           } else {
-            // Fallback to a random selection if no user
             const randomIndex = Math.floor(Math.random() * randomVideosData.length);
             setSelectedRandomVideo(randomVideosData[randomIndex]);
           }
@@ -214,12 +208,10 @@ const Stretch = () => {
     }
   }, [stretchingsLoaded, videosLoaded, dataLoaded]);
 
-  // Check stretching completion when component loads or selectedType changes
   useEffect(() => {
     checkStretchingCompletion();
   }, [user, selectedType]);
 
-  // Reset completed exercises when changing session type or when stopping
   useEffect(() => {
     setCompletedExercises([]);
   }, [selectedType, timerActive]);
@@ -228,7 +220,6 @@ const Stretch = () => {
     (s) => s.training === trainingType && s.type === selectedType
   );
 
-  // Filter out completed exercises for display
   const displayedExercises = filtered.filter((_, index) => 
     !completedExercises.includes(index) || index === currentExerciseIndex
   );
@@ -236,7 +227,6 @@ const Stretch = () => {
   const totalSessionDuration = filtered.reduce((sum, s) => sum + s.duration, 0);
   const currentExercise = filtered[currentExerciseIndex];
 
-  // Automatically scroll to top when a exercise is completed
   useEffect(() => {
     if (scrollViewRef.current && timerActive) {
       scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: true });
@@ -245,11 +235,9 @@ const Stretch = () => {
 
   useEffect(() => {
     if (timerActive && !paused) {
-      // Only initialize total time when first starting, not when resuming
       if (pausedTotalTimeLeft === 0) {
         setTotalTimeLeft(totalSessionDuration);
       } else {
-        // Resume from where we left off
         setTotalTimeLeft(pausedTotalTimeLeft);
       }
 
@@ -263,33 +251,25 @@ const Stretch = () => {
   useEffect(() => {
     if (!timerActive || paused || !currentExercise) return;
 
-    // Handle initial start vs resume
     if (pausedTimeLeft === 0) {
-      // First start of this exercise
       setTimeLeft(currentExercise.duration);
       progress.value = 0;
     } else {
-      // Resuming from pause
       setTimeLeft(pausedTimeLeft);
-      // Don't reset progress, continue from where we left off
       progress.value = pausedProgress;
     }
 
-    // Calculate remaining duration based on time left
     const remainingDuration = pausedTimeLeft > 0 
       ? pausedTimeLeft * 1000 
       : currentExercise.duration * 1000;
     
-    // Calculate target progress value (1 = 100%)
     const targetProgress = 1;
     
-    // If resuming, animate from current progress to completion
     if (pausedTimeLeft > 0) {
       progress.value = withTiming(targetProgress, {
         duration: remainingDuration,
       });
     } else {
-      // Starting fresh
       progress.value = withTiming(targetProgress, {
         duration: remainingDuration,
       });
@@ -302,10 +282,8 @@ const Stretch = () => {
           loadBeep();
           Vibration.vibrate(500);
 
-          // Mark current exercise as completed
           setCompletedExercises(prev => [...prev, currentExerciseIndex]);
 
-          // Reset pause state
           setPausedTimeLeft(0);
           setPausedProgress(0);
 
@@ -315,9 +293,7 @@ const Stretch = () => {
           } else {
             setTimerActive(false);
             setCurrentExerciseIndex(0);
-            // Clear completed exercises at the end of the session
             setCompletedExercises([]);
-            // Save completed stretching to Firestore
             saveStretchingCompletion();
           }
           return 0;
@@ -331,18 +307,14 @@ const Stretch = () => {
 
   useEffect(() => {
     if (paused) {
-      // Store current state when pausing
       setPausedTimeLeft(timeLeft);
       setPausedTotalTimeLeft(totalTimeLeft);
       setPausedProgress(progress.value);
       
-      // Stop animations and timers
       cancelAnimation(progress);
       clearInterval(intervalRef.current);
       clearInterval(globalTimerRef.current);
-    } else {
-      // When unpausing, we'll rely on the other effects to restart timers
-    }
+    } 
   }, [paused]);
 
   const barStyle = useAnimatedStyle(() => ({
@@ -488,14 +460,12 @@ const Stretch = () => {
                 source={{
                   uri: (() => {
                     if (!startDate) {
-                      // Return the stable selected random video
                       return selectedRandomVideo?.iframe || "";
                     } else {
                       const today = new Date();
                       today.setUTCHours(0, 0, 0, 0);
                       const diff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
                       if (diff < 0 || !trainingVideos.length) {
-                        // Use the stored random video instead of generating a new one
                         return selectedRandomVideo?.iframe || "";
                       } else {
                         return trainingVideos.find((v) => v.day === diff + 1)?.iframe || "";
@@ -554,14 +524,12 @@ const Stretch = () => {
                   source={{
                     uri: (() => {
                       if (!startDate) {
-                        // Return the stable selected random video
                         return selectedRandomVideo?.iframe || "";
                       } else {
                         const today = new Date();
                         today.setUTCHours(0, 0, 0, 0);
                         const diff = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
                         if (diff < 0 || !trainingVideos.length) {
-                          // Use the stored random video instead of generating a new one
                           return selectedRandomVideo?.iframe || "";
                         } else {
                           return trainingVideos.find((v) => v.day === diff + 1)?.iframe || "";
@@ -628,7 +596,7 @@ const Stretch = () => {
               colors={["transparent", "rgba(0,0,0,0.8)"]}
               style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 60, padding: 12 }}
             >
-              <Text className="text-white font-[InterBold] text-xl">{currentExercise.name}</Text>
+              <Text numberOfLines={1} className="text-white font-[InterBold] text-xl">{currentExercise.name}</Text>
             </LinearGradient>
             <View style={{ backgroundColor: "#b4b4b4" }}>
               <Animated.View style={barStyle} />
@@ -653,7 +621,7 @@ const Stretch = () => {
         
         {/* When training is active, show only upcoming exercises */}
         {timerActive && displayedExercises
-          .filter((_, idx) => idx !== 0) // Filter out current exercise (already shown above)
+          .filter((_, idx) => idx !== 0) 
           .map((s, i) => (
             <View key={i} className="flex-row bg-white/20 rounded-[10px] mb-5 overflow-hidden">
               <Image

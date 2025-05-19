@@ -4,11 +4,10 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Platform,
   ActivityIndicator,
   Dimensions,
 } from "react-native";
-import MapView, { PROVIDER_GOOGLE, Region, Polyline } from "react-native-maps";
+import MapView, { PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
 import { ArrowLeft, Info, Play, Pause, StopCircle, PencilRuler, Volume2 } from "lucide-react-native";
 import { useRouter } from "expo-router";
@@ -265,6 +264,46 @@ const MapScreen = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const setCityForManualLogging = async () => {
+    try {
+      const initialPosition = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      });
+
+      if (initialPosition) {
+        const { latitude, longitude } = initialPosition.coords;
+        lastLocation.current = { latitude, longitude };
+
+        const geoData = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+        if (geoData.length > 0) {
+          const { city: cityName, region, country } = geoData[0];
+          const resolvedCity = `${cityName || region}, ${country}`;
+          setCity(resolvedCity); // for your app state
+          return resolvedCity;   // for immediate use
+        }
+      }
+    } catch (error) {
+      console.error("Failed to get initial position:", error);
+    }
+
+    return null;
+  };
+
+
+  const handleManualLogPress = async () => {
+    const resolvedCity = await setCityForManualLogging();
+
+    router.push({
+      pathname: "/(app)/session/session-logging",
+      params: {
+        type: selectedType,
+        city: resolvedCity,
+      },
+    });
+  };
+
+
   const startActivity = async () => {
     setElapsedTime(0);
     setDistance(0);
@@ -440,7 +479,7 @@ const MapScreen = () => {
         ) : (
           <>
             <View style={styles.navButtonContainer}>
-              <TouchableOpacity style={styles.iconButton}>
+              <TouchableOpacity style={styles.iconButton} onPress={handleManualLogPress}>
                 <PencilRuler color="#1E1E1E" size={24} />
               </TouchableOpacity>
             </View>

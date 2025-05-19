@@ -179,21 +179,30 @@ const Sessions = () => {
                 height: 200, 
                 borderRadius: 10, 
                 overflow: 'hidden',
-                marginBottom: 10 
+                marginBottom: 10,
+                justifyContent: "center",
+                alignItems: "center",
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
               }}>
-                <MapView
-                  style={{ width: '100%', height: '100%' }}
-                  region={{
-                    latitude: session.coords[0]?.latitude || 0,
-                    longitude: session.coords[0]?.longitude || 0,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                >
-                  <Polyline coordinates={session.coords} strokeWidth={4} strokeColor="#FACC15" />
-                </MapView>
+                {session.coords && session.coords.length > 0 ? (
+                  <MapView
+                    style={{ width: '100%', height: '100%' }}
+                    region={{
+                      latitude: session.coords[0].latitude,
+                      longitude: session.coords[0].longitude,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
+                    }}
+                    scrollEnabled={false}
+                    zoomEnabled={false}
+                  >
+                    <Polyline coordinates={session.coords} strokeWidth={4} strokeColor="#FACC15" />
+                  </MapView>
+                ) : (
+                  <Text style={{ color: "#ccc", fontFamily: "InterRegular", padding: 20, textAlign: "center" }}>
+                    No GPS data available. This session was manually logged.
+                  </Text>
+                )}
               </View>
               <View style={styles.stats}>
                 <View style={styles.statBlock}>
@@ -203,7 +212,7 @@ const Sessions = () => {
                 </View>
                 <View style={styles.statBlock}>
                   <Text style={styles.statTitle}>Distance</Text>
-                  <Text style={styles.stat}>{(session.distance / 1000).toFixed(2)}</Text>
+                  <Text style={styles.stat}>{session.distance}</Text>
                   <Text style={styles.statBottom}>km</Text>
                 </View>
                 <View style={styles.statBlock}>
@@ -333,12 +342,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   noSessionsContainer: {
-    marginTop: 50,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#FACC15",
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    marginTop: 20,
   },
   noSessionsText: {
     color: "white",
