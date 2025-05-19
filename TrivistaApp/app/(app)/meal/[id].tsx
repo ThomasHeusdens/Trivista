@@ -3,7 +3,6 @@
  */
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
-import { mealImages } from "@/lib/imageMealsMap";
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -192,7 +191,7 @@ const MealDetail = () => {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <ImageBackground
-          source={mealImages[meal.picture]}
+          source={{uri: meal.picture}}
           style={styles.image}
           resizeMode="cover"
         >
