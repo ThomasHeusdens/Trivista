@@ -32,6 +32,7 @@ const MapScreen = () => {
   const [startTime, setStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [routeCoords, setRouteCoords] = useState([]);
+  const [city, setCity] = useState("");
 
   const router = useRouter();
   const mapRef = useRef(null);
@@ -39,6 +40,7 @@ const MapScreen = () => {
   const timerInterval = useRef(null);
   const lastLocation = useRef(null);
   const pausedTime = useRef(null);
+  const visualWatchId = useRef(null);
   const { user } = useSession();
 
   useEffect(() => {
@@ -122,18 +124,26 @@ const MapScreen = () => {
   }, [user]);
 
   useEffect(() => {
-    if (tracking && !isPaused) {
-      if (!startTime) {
-        setStartTime(new Date());
-      }
-      
-      timerInterval.current = setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
+    if (tracking) {
+      if (!isPaused) {
+        if (!startTime) {
+          setStartTime(new Date());
+        }
+        
+        timerInterval.current = setInterval(() => {
+          setElapsedTime((prev) => prev + 1);
+        }, 1000);
 
-      startLocationTracking();
+        startLocationTracking();
+      } else {
+        stopLocationTracking();
+        if (timerInterval.current) {
+          clearInterval(timerInterval.current);
+          timerInterval.current = null;
+        }
+      }
     } else {
-      stopLocationTracking();
+      stopAllTracking();
       if (timerInterval.current) {
         clearInterval(timerInterval.current);
         timerInterval.current = null;
@@ -141,7 +151,7 @@ const MapScreen = () => {
     }
 
     return () => {
-      stopLocationTracking();
+      stopAllTracking();
       if (timerInterval.current) {
         clearInterval(timerInterval.current);
         timerInterval.current = null;
@@ -150,6 +160,43 @@ const MapScreen = () => {
   }, [tracking, isPaused]);
 
   const startLocationTracking = async () => {
+    try {
+      startVisualTracking();
+      
+      if (!isPaused) {
+        const subscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.BestForNavigation,
+            timeInterval: 1000,
+            distanceInterval: 1,
+          },
+          (loc) => {
+            const { latitude, longitude } = loc.coords;
+            
+            if (lastLocation.current) {
+              const dx = geolib.getDistance(
+                { latitude: lastLocation.current.latitude, longitude: lastLocation.current.longitude },
+                { latitude, longitude }
+              );
+
+              if (dx > 1) {
+                console.log(`Distance increment: ${dx} meters`);
+                setDistance((prev) => prev + dx);
+              }
+            }
+
+            lastLocation.current = { latitude, longitude };
+          }
+        );
+
+        watchId.current = subscription;
+      }
+    } catch (error) {
+      console.error("Error starting location tracking:", error);
+    }
+  };
+
+  const startVisualTracking = async () => {
     try {
       const subscription = await Location.watchPositionAsync(
         {
@@ -170,26 +217,12 @@ const MapScreen = () => {
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           });
-
-          if (lastLocation.current) {
-            const dx = geolib.getDistance(
-              { latitude: lastLocation.current.latitude, longitude: lastLocation.current.longitude },
-              { latitude, longitude }
-            );
-
-            if (dx > 1) {
-              console.log(`Distance increment: ${dx} meters`);
-              setDistance((prev) => prev + dx);
-            }
-          }
-
-          lastLocation.current = { latitude, longitude };
         }
       );
 
-      watchId.current = subscription;
+      visualWatchId.current = subscription;
     } catch (error) {
-      console.error("Error starting location tracking:", error);
+      console.error("Error starting visual tracking:", error);
     }
   };
 
@@ -197,6 +230,14 @@ const MapScreen = () => {
     if (watchId.current) {
       watchId.current.remove();
       watchId.current = null;
+    }
+  };
+
+  const stopAllTracking = () => {
+    stopLocationTracking();
+    if (visualWatchId.current) {
+      visualWatchId.current.remove();
+      visualWatchId.current = null;
     }
   };
 
@@ -210,9 +251,10 @@ const MapScreen = () => {
   }, [elapsedTime, distance]);
 
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   const formatPace = (paceMinPerKm) => {
@@ -239,7 +281,14 @@ const MapScreen = () => {
         const { latitude, longitude } = initialPosition.coords;
         lastLocation.current = { latitude, longitude };
         setLocation(initialPosition);
-        console.log("Starting location:", lastLocation.current);
+        
+        const geoData = await Location.reverseGeocodeAsync({ latitude, longitude });
+
+        if (geoData.length > 0) {
+          const { city: cityName, region, country } = geoData[0];
+          setCity(`${cityName || region}, ${country}`);
+          console.log("Start city:", `${cityName || region}, ${country}`);
+        }
       }
     } catch (error) {
       console.error("Failed to get initial position:", error);
@@ -251,6 +300,7 @@ const MapScreen = () => {
   const pauseActivity = () => {
     setIsPaused(true);
     pausedTime.current = new Date();
+    stopLocationTracking();
     console.log("Activity paused");
   };
 
@@ -271,6 +321,7 @@ const MapScreen = () => {
     }
 
     setIsPaused(false);
+    startLocationTracking();
     console.log("Activity resumed");
   };
 
@@ -283,6 +334,7 @@ const MapScreen = () => {
     setTracking(false);
     setIsPaused(false);
     setStartTime(null);
+    stopAllTracking();
 
     router.push({
       pathname: "/(app)/session/session-summary",
@@ -292,6 +344,7 @@ const MapScreen = () => {
         pace: finalPace.toString(),
         coords: JSON.stringify(finalCoords),
         type: selectedType,
+        city: city,
       },
     });
 
@@ -326,9 +379,15 @@ const MapScreen = () => {
         </View>
       )}
 
+      {tracking && (
+        <View style={styles.topBar2}>
+          <Text style={styles.topBarTitle}>GO FOR IT!</Text>
+        </View>
+      )}
+
       <MapView
         ref={mapRef}
-        provider={Platform.OS === "android" ? PROVIDER_GOOGLE : undefined}
+        provider={PROVIDER_GOOGLE}
         style={styles.map}
         region={region}
         showsUserLocation={true}
@@ -338,9 +397,23 @@ const MapScreen = () => {
 
       {tracking && (
         <View style={styles.trackingBar}>
-          <Text style={styles.statText}>Time: {formatTime(elapsedTime)}</Text>
-          <Text style={styles.statText}>Dist: {(distance / 1000).toFixed(2)} km</Text>
-          <Text style={styles.statText}>Pace: {formatPace(pace)}</Text>
+          <View style={styles.stats}>
+            <View className="flex-column w-[35%]">
+              <Text style={styles.statTitle}>Time</Text>
+              <Text style={styles.stat}>{formatTime(elapsedTime)}</Text>
+              <Text style={styles.statBottom}>hh:mm:ss</Text>
+            </View>
+            <View className="flex-column w-[30%]">
+              <Text style={styles.statTitle}>Distance</Text>
+              <Text style={styles.stat}>{(distance / 1000).toFixed(2)}</Text>
+              <Text style={styles.statBottom}>km</Text>
+            </View>
+            <View className="flex-column w-[30%]">
+              <Text style={styles.statTitle}>Pace</Text>
+              <Text style={styles.stat}>{formatPace(pace)}</Text>
+              <Text style={styles.statBottom}>min/km</Text>
+            </View>
+          </View>
           {isPaused && (
             <Text style={[styles.statText, styles.pausedText]}>PAUSED</Text>
           )}
@@ -414,6 +487,8 @@ const { width, height } = Dimensions.get("window");
 const styles = StyleSheet.create({
   map: {
     flex: 1,
+    marginTop: 100,
+    marginBottom: 80,
   },
   loadingContainer: {
     flex: 1,
@@ -435,11 +510,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 30,
   },
+  topBar2: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    backgroundColor: "#1E1E1E",
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingTop: 30,
+  },
   topBarTitle: {
     fontSize: 25,
     fontFamily: "Bison",
     color: "#FACC15",
+    textAlign: "center",
     letterSpacing: 1.5,
+  },
+  stats: {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  stat: {
+    fontSize: 30,
+    color: "white",
+    fontFamily: "Bison",
+    letterSpacing: 1.5,
+    textAlign: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    borderRadius: 10,
+    padding: 10,
+  },
+  statTitle: {
+    fontSize: 15,
+    color: "white",
+    fontFamily: "Bison",
+    letterSpacing: 1.5,
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  statBottom: {
+    fontSize: 14,
+    color: "#ccc",
+    fontFamily: "InterRegular",
+    textAlign: "center",
   },
   bottomBar: {
     position: "absolute",
@@ -533,8 +653,11 @@ const styles = StyleSheet.create({
     color: "#FACC15",
     fontWeight: "bold",
     position: "absolute",
-    right: 12,
-    top: -22,
+    backgroundColor: "#1E1E1E",
+    padding: 8,
+    borderRadius: 10,
+    right: 0,
+    top: -40,
   },
 });
 

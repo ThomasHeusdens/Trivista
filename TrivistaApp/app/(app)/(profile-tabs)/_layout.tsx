@@ -63,7 +63,7 @@ export default function ProfileTabLayout() {
         ),
         headerLeft: () => (
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.push("/(app)/(tabs)/eat")}
             style={{ marginLeft: 20, transform: [{ rotate: "-135deg" }] }}
           >
             <Plus color="white" size={40} />
