@@ -3,21 +3,20 @@
  */
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
-import { mealImages } from "@/lib/imageMealsMap";
 import { AntDesign } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
+import { ActivityIndicator } from "react-native";
 import React, { useEffect, useState } from "react";
+import CustomAlert from "@/components/CustomAlert";
 import {
-  Alert,
   Dimensions,
   ImageBackground,
-  Pressable,
+  TouchableOpacity,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { Checkbox } from "react-native-paper";
@@ -40,6 +39,11 @@ const MealDetail = () => {
   const [ingredients, setIngredients] = useState({});
   const [selectedIds, setSelectedIds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [buttonLoading, setButtonLoading] = useState(false);
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   /**
    * Fetches meal and ingredient data from Firestore.
@@ -137,20 +141,15 @@ const MealDetail = () => {
    */
   const handleSave = async () => {    
     if (selectedIds.length === 0) {
-      Alert.alert("Error", "Please select at least one ingredient");
+      setAlertTitle("Error");
+      setAlertMessage("Please select at least one ingredient.");
+      setAlertVisible(true);
       return;
     }
 
-    try {
-      console.log("Saving meal...", {
-        userId: user.uid,
-        mealType: type,
-        selectedIngredients: selectedIds.length,
-        mealId: id
-      });
-      
+    try { 
+      setButtonLoading(true);
       const docId = `${user.uid}_${type}`;
-      
       await setDoc(doc(db, "UserMeals", docId), {
         ingredients: selectedIds,
         timestamp: new Date(),
@@ -159,18 +158,19 @@ const MealDetail = () => {
         userId: user.uid,
       });
       
-      console.log("Meal saved successfully!");
       router.back();
     } catch (err) {
-      console.error("Error saving meal:", err);
-      Alert.alert("Error", `Failed to save meal: ${err.message}`);
+      setButtonLoading(false);
+      setAlertTitle("Error");
+      setAlertMessage(`Failed to save meal: ${err.message}`);
+      setAlertVisible(true);
     }
   };
 
   if (isLoading || !meal || Object.keys(ingredients).length === 0) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: "#1E1E1E" }}>
-        <Text style={{ color: 'white' }}>Loading...</Text>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>
+        <ActivityIndicator size="large" color="white" />
       </View>
     );
   }
@@ -191,13 +191,13 @@ const MealDetail = () => {
     <View style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <ImageBackground
-          source={mealImages[meal.picture]}
+          source={{uri: meal.picture}}
           style={styles.image}
           resizeMode="cover"
         >
-          <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <AntDesign name="arrowleft" size={28} color="#1e1e1e" />
-          </Pressable>
+          </TouchableOpacity>
           <LinearGradient
             colors={["#1E1E1E", "transparent"]}
             start={{ x: 0.5, y: 1 }}
@@ -235,7 +235,7 @@ const MealDetail = () => {
                   {ingredients[id]?.name || "Unknown"} ({count})
                 </Text>
                 <View style={styles.counterWrapper}>
-                  <Pressable 
+                  <TouchableOpacity 
                     onPress={() => decrement(id)} 
                     style={styles.counterButton}
                     disabled={selectedCount === 0}
@@ -244,11 +244,11 @@ const MealDetail = () => {
                       styles.counterSymbol, 
                       selectedCount === 0 ? {color: '#666'} : {color: 'white'}
                     ]}>-</Text>
-                  </Pressable>
+                  </TouchableOpacity>
                   <Text style={styles.counterNumber}>{selectedCount}</Text>
-                  <Pressable onPress={() => increment(id)} style={styles.counterButton}>
+                  <TouchableOpacity onPress={() => increment(id)} style={styles.counterButton}>
                     <Text style={styles.counterSymbol}>+</Text>
-                  </Pressable>
+                  </TouchableOpacity>
                 </View>
               </View>
             );
@@ -273,7 +273,7 @@ const MealDetail = () => {
                       {ingredients[id]?.name || "Unknown"}
                     </Text>
                     <View style={styles.counterWrapper}>
-                      <Pressable 
+                      <TouchableOpacity 
                         onPress={() => decrement(id)} 
                         style={styles.counterButton}
                         disabled={selectedCount === 0}
@@ -282,11 +282,11 @@ const MealDetail = () => {
                           styles.counterSymbol, 
                           selectedCount === 0 ? {color: '#666'} : {color: 'white'}
                         ]}>-</Text>
-                      </Pressable>
+                      </TouchableOpacity>
                       <Text style={styles.counterNumber}>{selectedCount}</Text>
-                      <Pressable onPress={() => increment(id)} style={styles.counterButton}>
+                      <TouchableOpacity onPress={() => increment(id)} style={styles.counterButton}>
                         <Text style={styles.counterSymbol}>+</Text>
-                      </Pressable>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 );
@@ -296,18 +296,32 @@ const MealDetail = () => {
         )}
       </ScrollView>
 
-      <TouchableOpacity 
-        style={[
-          styles.saveButton,
-          selectedIds.length === 0 && styles.saveButtonDisabled
-        ]} 
-        onPress={handleSave}
-        disabled={selectedIds.length === 0}
-      >
-        <Text style={styles.saveButtonText}>
-          Save Meal {selectedIds.length > 0 ? `(${selectedIds.length} items)` : ''}
-        </Text>
-      </TouchableOpacity>
+      {buttonLoading ? (
+        <View style={[
+            styles.saveButton,
+          ]}>
+          <ActivityIndicator size="small" color="#1E1E1E" />
+        </View>
+      ) : (
+        <TouchableOpacity 
+          style={[
+            styles.saveButton,
+            selectedIds.length === 0 && styles.saveButtonDisabled
+          ]} 
+          onPress={handleSave}
+          disabled={selectedIds.length === 0}
+        >
+          <Text style={styles.saveButtonText}>
+            Save Meal {selectedIds.length > 0 ? `(${selectedIds.length} items)` : ''}
+          </Text>
+        </TouchableOpacity>
+      )}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </View>
   );
 };

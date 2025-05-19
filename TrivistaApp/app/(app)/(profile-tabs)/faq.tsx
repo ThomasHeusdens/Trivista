@@ -9,7 +9,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
+  TouchableOpacity,
   FlatList,
   Dimensions,
   Animated,
@@ -19,6 +19,7 @@ import { BlurView } from "expo-blur";
 import { ChevronDown } from "lucide-react-native";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase-db";
+import { ActivityIndicator } from "react-native";
 
 const screenHeight = Dimensions.get("window").height;
 const screenWidth = Dimensions.get("window").width;
@@ -34,6 +35,8 @@ const FAQ = () => {
   const [faqItems, setFaqItems] = useState<any[]>([]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const rotation = useState(new Animated.Value(0))[0];
+  const [loading, setLoading] = useState(true);
+  const [faqLoaded, setFaqLoaded] = useState(false);
 
   /**
    * fetchFAQs()
@@ -49,8 +52,10 @@ const FAQ = () => {
       setFaqItems(items);
     } catch (error) {
       console.error("Failed to fetch FAQ:", error);
+    } finally {
+      setFaqLoaded(true);
     }
-  };
+  }
 
   /**
    * toggleItem(index)
@@ -95,6 +100,20 @@ const FAQ = () => {
     fetchFAQs();
   }, []);
 
+  useEffect(() => {
+    if (faqLoaded) {
+      setLoading(false);
+    }
+  }, [faqLoaded]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>
+        <ActivityIndicator size="large" color="white" />
+      </View>
+    );
+  }
+
   return (
     <>
       <ImageBackground
@@ -118,23 +137,22 @@ const FAQ = () => {
             paddingHorizontal: 15,
         }}
         renderItem={({ item, index }) => (
-            <Pressable onPress={() => toggleItem(index)} style={{ marginBottom: 12 }}>
+          <TouchableOpacity onPress={() => toggleItem(index)} style={{ marginBottom: 12 }}>
             <BlurView intensity={60} tint="light" style={styles.card}>
-                <View style={styles.row}>
+              <View style={styles.row}>
                 <Text style={styles.question}>{item.question}</Text>
                 <Animated.View style={{ transform: [{ rotate: getRotation(index) }] }}>
-                    <ChevronDown color="white" size={24} />
+                  <ChevronDown color="white" size={24} />
                 </Animated.View>
-                </View>
-
-                {openIndex === index && (
+              </View>
+              {openIndex === index && (
                 <>
-                    <View style={styles.separator} />
-                    <Text style={styles.answer}>{item.answer}</Text>
+                  <View style={styles.separator} />
+                  <Text style={styles.answer}>{item.answer}</Text>
                 </>
-                )}
+              )}
             </BlurView>
-            </Pressable>
+          </TouchableOpacity>
         )}
         />
 

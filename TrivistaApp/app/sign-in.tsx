@@ -7,7 +7,6 @@
 import {
   ImageBackground,
   Image,
-  Pressable,
   Text,
   TextInput,
   View,
@@ -15,11 +14,13 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Platform,
-  Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useState } from "react";
 import { useSession } from "@/context";
 import { router } from "expo-router";
+import { ActivityIndicator } from "react-native";
+import CustomAlert from "@/components/CustomAlert";
 
 /**
  * SignIn renders the sign-in screen with email and password input fields.
@@ -29,7 +30,12 @@ import { router } from "expo-router";
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const { signIn } = useSession();
+
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   /**
    * Validates email format with basic regex pattern.
@@ -47,30 +53,42 @@ export default function SignIn() {
    */
   const handleSignInPress = async () => {
     if (!email || !password) {
-      Alert.alert("Missing Fields", "Please fill in both email and password.");
+      setAlertTitle("Missing Fields");
+      setAlertMessage("Please fill in all the fields.");
+      setAlertVisible(true);
       return;
     }
 
     if (!isValidEmail(email)) {
-      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      setAlertTitle("Invalid Email");
+      setAlertMessage("Please enter a valid email address.");
+      setAlertVisible(true);
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Weak Password", "Password must be at least 6 characters.");
+      setAlertTitle("Weak Password");
+      setAlertMessage("Password must be at least 6 characters.");
+      setAlertVisible(true);
       return;
     }
 
     try {
+      setLoading(true);
       const resp = await signIn(email, password);
-
       if (resp) {
         router.replace("/(app)/");
       } else {
-        Alert.alert("Login Failed", "Email or password is incorrect.");
+        setLoading(false);
+        setAlertTitle("Login Failed");
+        setAlertMessage("Email or password is incorrect.");
+        setAlertVisible(true);
       }
     } catch (err) {
-      Alert.alert("Login Error", "Something went wrong. Please try again.");
+      setLoading(false);
+      setAlertTitle("Login Error");
+      setAlertMessage("Something went wrong. Please try again.");
+      setAlertVisible(true);
     }
   };
 
@@ -106,7 +124,7 @@ export default function SignIn() {
               </Text>
             </View>
 
-            <Pressable
+            <TouchableOpacity
               onPress={() => router.replace("/sign-up")}
               className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[45%] items-center"
             >
@@ -116,7 +134,7 @@ export default function SignIn() {
               >
                 REGISTER
               </Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
 
           <View className="w-[80%] mb-9 space-y-4">
@@ -144,22 +162,39 @@ export default function SignIn() {
             </View>
           </View>
 
-          <Pressable
-            onPress={handleSignInPress}
-            className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]"
-          >
-            <Text
-              className="text-center text-black text-base font-semibold font-[Bison]"
-              style={{
-                letterSpacing: 1.5,
-                fontSize: 20,
-              }}
+          {loading ? (
+            <View className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]">
+              <ActivityIndicator size="small" color="#1E1E1E" />
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={handleSignInPress}
+              className="bg-[#FACC15] rounded-[10px] px-6 py-5 w-[80%]"
             >
-              GET STARTED
-            </Text>
-          </Pressable>
+              <Text
+                className="text-center text-black text-base font-semibold font-[Bison]"
+                style={{
+                  letterSpacing: 1.5,
+                  fontSize: 20,
+                }}
+              >
+                GET STARTED
+              </Text>
+            </TouchableOpacity>
+          )}
         </ImageBackground>
       </TouchableWithoutFeedback>
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
+      <Image
+        source={require("@/assets/images/triathlon-logo.png")}
+        className="w-[100%] h-[40px] top-[50px] absolute"
+        resizeMode="contain"
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -5,7 +5,7 @@
  * for the main authenticated pages of the app.
  */
 import { Tabs } from "expo-router";
-import { Pressable, Text } from "react-native";
+import { TouchableOpacity, Text } from "react-native";
 import { useNavigation } from "expo-router";
 import {
   BellRing,
@@ -13,9 +13,9 @@ import {
   Apple,
   Dumbbell,
   HeartHandshake,
-  StretchHorizontal,
 } from "lucide-react-native";
 import { DrawerNavigationProp } from "@react-navigation/drawer";
+import StretchingIcon from "@/components/StretchingIcon";
 
 /**
  * TabLayout()
@@ -51,17 +51,17 @@ export default function TabLayout() {
           </Text>
         ),
         headerLeft: () => (
-          <Pressable style={{ marginLeft: 25 }}>
+          <TouchableOpacity style={{ marginLeft: 25 }}>
             <BellRing color="white" size={30} />
-          </Pressable>
+          </TouchableOpacity>
         ),
         headerRight: () => (
-          <Pressable
+          <TouchableOpacity
             onPress={() => navigation.navigate("(profile-tabs)")}
             style={{ marginRight: 25 }}
           >
             <CircleUser color="white" size={30} />
-          </Pressable>
+          </TouchableOpacity>
         ),
         tabBarStyle: {
           backgroundColor: "#1E1E1E",
@@ -100,7 +100,7 @@ export default function TabLayout() {
         options={{
           title: "STRETCH",
           tabBarIcon: ({ color }) => (
-            <StretchHorizontal color={color} size={28} />
+            <StretchingIcon size={28} color={color} />
           ),
         }}
       />

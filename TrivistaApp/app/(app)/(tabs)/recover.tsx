@@ -14,9 +14,11 @@ import {
   Dimensions,
   Linking,
 } from "react-native";
+import StretchingIcon from "@/components/StretchingIcon";
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { ActivityIndicator } from "react-native";
 import {
   GlassWater,
   BedDouble,
@@ -24,6 +26,7 @@ import {
   Brain,
 } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
  * Recover screen
@@ -38,7 +41,12 @@ const Recover = () => {
   const screenHeight = Dimensions.get("window").height;
   const screenWidth = Dimensions.get("window").width;
 
+  const [loading, setLoading] = useState(true);
+  const [tipsLoaded, setTipsLoaded] = useState(false);
+
   const [tips, setTips] = useState([]);
+
+  const getRandomElement = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   /**
    * Calculates the number of days since the user created their account.
@@ -70,18 +78,63 @@ const Recover = () => {
     const fetchTips = async () => {
       if (!currentDay) return;
 
+      const todayKey = `dailyTips_${currentDay}`;
+
+      // If currentDay <= 91 → normal flow
+      if (currentDay <= 91) {
+        try {
+          const q = query(collection(db, "Recovery"), where("day", "==", currentDay));
+          const snapshot = await getDocs(q);
+          const fetched = snapshot.docs.map((doc) => doc.data());
+          setTips(fetched);
+        } catch (err) {
+          console.error("Error fetching tips for today:", err);
+        } finally {
+          setTipsLoaded(true);
+        }
+        return;
+      }
+
+      // If currentDay > 91 → try to load from cache
       try {
-        const q = query(collection(db, "Recovery"), where("day", "==", currentDay));
-        const snapshot = await getDocs(q);
-        const fetched = snapshot.docs.map((doc) => doc.data());
-        setTips(fetched);
+        const cached = await AsyncStorage.getItem(todayKey);
+        if (cached) {
+          setTips(JSON.parse(cached));
+          setTipsLoaded(true);
+          return;
+        }
+
+        // No cache found → pick new random tips
+        const snapshot = await getDocs(collection(db, "Recovery"));
+        const allTips = snapshot.docs.map((doc) => doc.data());
+
+        const categories = ["hydration", "sleep", "stretching", "general"];
+        const randomTips = categories
+          .map((type) => {
+            const matching = allTips.filter((tip) => tip.type.toLowerCase() === type);
+            return getRandomElement(matching);
+          })
+          .filter(Boolean); // remove undefined if any category had no data
+
+        setTips(randomTips);
+        await AsyncStorage.setItem(todayKey, JSON.stringify(randomTips));
       } catch (err) {
-        console.error("Error fetching recovery tips:", err);
+        console.error("Fallback error fetching tips:", err);
+      } finally {
+        setTipsLoaded(true);
       }
     };
 
     fetchTips();
   }, [currentDay]);
+
+
+  useEffect(() => {
+    if (tipsLoaded) {
+      setLoading(false);
+    }
+  }, [tipsLoaded]);
+
 
   /**
    * Returns a recovery tip object by its type.
@@ -96,6 +149,14 @@ const Recover = () => {
   const sleep = getTipByType("sleep");
   const stretching = getTipByType("stretching");
   const general = getTipByType("general");
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#1E1E1E" }}>
+        <ActivityIndicator size="large" color="white" />
+      </View>
+    );
+  }
 
   return (
     <>
@@ -122,7 +183,7 @@ const Recover = () => {
             <Text className="text-[#B4B4B4] text-sm font-[InterRegular] ml-2">Post-training stretching helps your muscles recover faster, reduces soreness, and improves flexibility over time.</Text>
           </View>
           <Pressable onPress={() => router.push("stretch")} className="w-[20%] aspect-square items-center justify-center bg-[#FACC15] rounded-[10px]">
-            <StretchHorizontal size={30} color="#1e1e1e" />
+            <StretchingIcon size={50} color={"#1e1e1e"} />
           </Pressable>
         </View>
 

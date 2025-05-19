@@ -3,10 +3,11 @@
  *
  * Final onboarding screen explaining the app’s mission and marking onboarding as complete.
  */
-import { Text, Pressable, ImageBackground, View } from "react-native";
+import { Text, TouchableOpacity, ImageBackground, View, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
 import { auth } from "@/lib/firebase-config";
 import { updateProfile } from "firebase/auth";
+import { useState } from "react";
 
 /**
  * Onboarding4()
@@ -16,18 +17,23 @@ import { updateProfile } from "firebase/auth";
  * @returns {JSX.Element} Step 4 onboarding screen
  */
 export default function Onboarding4() {
+  const [loading, setLoading] = useState(false);
+
   /**
    * Marks onboarding as complete by updating the user's photoURL in Firebase Auth.
    *
    * @returns {Promise<void>}
    */
   const finishOnboarding = async () => {
+    setLoading(true);
     const user = auth.currentUser;
     if (user) {
       await updateProfile(user, { photoURL: "onboarding-complete" });
     } else {
       console.warn("❌ No user found!");
+      setLoading(false);
     }
+    setLoading(false);
     router.replace("/(app)/(tabs)/eat");
   };
   
@@ -58,14 +64,19 @@ export default function Onboarding4() {
           <View className="bg-[#FACC15] w-[30px] h-[10px] rounded-[10px]"></View>
         </View>
 
-        <Pressable
+        <TouchableOpacity
           onPress={finishOnboarding}
+          disabled={loading}
           className="bg-[#FACC15] w-[100%] rounded-[10px] px-6 py-4 items-center"
         >
-          <Text className="text-[#1E1E1E] font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 20 }}>
-            NEXT
-          </Text>
-        </Pressable>
+          {loading ? (
+            <ActivityIndicator color="#1E1E1E" />
+          ) : (
+            <Text className="text-[#1E1E1E] font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 20 }}>
+              DONE
+            </Text>
+          )}
+        </TouchableOpacity>
       </View>
     </ImageBackground>
   );
