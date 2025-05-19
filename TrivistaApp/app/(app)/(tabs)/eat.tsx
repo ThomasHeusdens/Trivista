@@ -5,7 +5,6 @@
 import NutritionProgress from "@/components/NutritionProgress";
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
-import { mealImages } from "@/lib/imageMealsMap";
 import { useRouter } from "expo-router";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -224,7 +223,7 @@ const Eat = () => {
           <TouchableOpacity onPress={() => router.push({ pathname: `/meal/${meal.id}`, params: { type: meal.mealType } })}>
             <View style={{ backgroundColor: "rgba(255, 255, 255, 0.3)", borderBottomRightRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 60, borderTopLeftRadius: 60, padding: 0, flexDirection: "row", alignItems: "center" }}>
               <Image
-                source={mealImages[meal.picture]}
+                source={{uri: meal.picture}}
                 style={{ width: 120, height: 120, borderRadius: 60, marginRight: 16 }}
                 resizeMode="cover"
               />
@@ -280,7 +279,7 @@ const Eat = () => {
               <TouchableOpacity onPress={() => router.push({ pathname: `/meal/${item.id}`, params: { type } })}>
                 <View style={{ backgroundColor: "rgba(255, 255, 255, 0.3)", padding: 14, borderRadius: 10, width: 200, alignItems: "center", height: 235}}>
                   <Image
-                    source={mealImages[item.picture]}
+                    source={{ uri: item.picture }}
                     style={{ width: 140, height: 140, borderRadius: 70 }}
                     resizeMode="cover"
                   />
