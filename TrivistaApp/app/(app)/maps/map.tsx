@@ -9,13 +9,14 @@ import {
 } from "react-native";
 import MapView, { PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
-import { ArrowLeft, Info, Play, Pause, StopCircle, PencilRuler, Volume2 } from "lucide-react-native";
+import { ArrowLeft, Info, Play, Pause, StopCircle, PencilRuler, Volume2, VolumeX } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import CustomAlert from "@/components/CustomAlert";
 import { useSession } from "@/context";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase-db";
 import * as geolib from 'geolib';
+import * as Speech from "expo-speech";
 
 const MapScreen = () => {
   const [location, setLocation] = useState(null);
@@ -33,6 +34,9 @@ const MapScreen = () => {
   const [routeCoords, setRouteCoords] = useState([]);
   const [city, setCity] = useState("");
 
+  const [voiceOn, setVoiceOn] = useState(true);
+  const spokenKilometers = useRef(new Set<number>());
+
   const router = useRouter();
   const mapRef = useRef(null);
   const watchId = useRef(null);
@@ -41,6 +45,28 @@ const MapScreen = () => {
   const pausedTime = useRef(null);
   const visualWatchId = useRef(null);
   const { user } = useSession();
+
+  const speakUpdate = (km: number, timeSec: number, paceMinPerKm: number) => {
+    try {
+      const minutes = Math.floor(timeSec / 60);
+      const seconds = timeSec % 60;
+      const paceMin = Math.floor(paceMinPerKm);
+      const paceSec = Math.floor((paceMinPerKm - paceMin) * 60);
+
+      const paceFormatted = `${paceMin} minutes and ${paceSec} seconds`;
+      
+      const message = `Kilometer ${km} completed. Total time: ${minutes} minutes and ${seconds} seconds. Current pace: ${paceFormatted} per kilometer`;
+      
+      Speech.speak(message, { 
+        rate: 0.95,
+        pitch: 1.0,
+        onError: (error) => console.error("Speech error:", error),
+        onDone: () => console.log("Voice announcement completed")
+      });
+    } catch (error) {
+      console.error("Failed to produce voice update:", error);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -249,6 +275,27 @@ const MapScreen = () => {
     }
   }, [elapsedTime, distance]);
 
+  useEffect(() => {
+    if (!voiceOn || !tracking || isPaused) return;
+
+    const currentKilometers = distance / 1000;
+    const lastCompletedKilometer = Math.floor(currentKilometers);
+    
+    if (lastCompletedKilometer > 0 && !spokenKilometers.current.has(lastCompletedKilometer)) {
+      if (currentKilometers >= lastCompletedKilometer + 0.01) {
+        console.log(`Announcing kilometer ${lastCompletedKilometer}`);
+        spokenKilometers.current.add(lastCompletedKilometer);
+        
+        try {
+          const currentPace = elapsedTime > 0 ? (elapsedTime / 60) / (distance / 1000) : 0;
+          speakUpdate(lastCompletedKilometer, elapsedTime, currentPace);
+        } catch (error) {
+          console.error("Error during voice announcement:", error);
+        }
+      }
+    }
+  }, [distance, tracking, isPaused, voiceOn]);
+
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -279,8 +326,8 @@ const MapScreen = () => {
         if (geoData.length > 0) {
           const { city: cityName, region, country } = geoData[0];
           const resolvedCity = `${cityName || region}, ${country}`;
-          setCity(resolvedCity); // for your app state
-          return resolvedCity;   // for immediate use
+          setCity(resolvedCity); 
+          return resolvedCity;   
         }
       }
     } catch (error) {
@@ -303,6 +350,18 @@ const MapScreen = () => {
     });
   };
 
+  const resetVoiceTracking = async () => {
+    spokenKilometers.current.clear();
+    
+    try {
+      const isSpeaking = await Speech.isSpeakingAsync();
+      if (isSpeaking) {
+        Speech.stop();
+      }
+    } catch (error) {
+      console.error("Error checking speech status:", error);
+    }
+  };
 
   const startActivity = async () => {
     setElapsedTime(0);
@@ -310,6 +369,7 @@ const MapScreen = () => {
     setPace(0);
     setRouteCoords([]);
     setIsPaused(false);
+    await resetVoiceTracking();
 
     try {
       const initialPosition = await Location.getCurrentPositionAsync({
@@ -364,7 +424,7 @@ const MapScreen = () => {
     console.log("Activity resumed");
   };
 
-  const stopActivity = () => {
+  const stopActivity = async () => {
     const finalTime = elapsedTime;
     const finalDistance = distance;
     const finalPace = pace;
@@ -374,6 +434,7 @@ const MapScreen = () => {
     setIsPaused(false);
     setStartTime(null);
     stopAllTracking();
+    await resetVoiceTracking();
 
     router.push({
       pathname: "/(app)/session/session-summary",
@@ -497,9 +558,17 @@ const MapScreen = () => {
             </View>
 
             <View style={styles.navButtonContainer}>
-              <TouchableOpacity style={styles.iconButton}>
-                <Volume2 color="#1E1E1E" size={24} />
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setVoiceOn(prev => !prev)}
+              >
+                {voiceOn ? (
+                  <Volume2 color="#1E1E1E" size={24} />
+                ) : (
+                  <VolumeX color="#1E1E1E" size={24} />
+                )}
               </TouchableOpacity>
+
             </View>
           </>
         )}
