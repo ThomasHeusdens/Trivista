@@ -17,6 +17,8 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase-db";
 import * as geolib from 'geolib';
 import * as Speech from "expo-speech";
+import * as TaskManager from "expo-task-manager";
+import { LOCATION_TASK_NAME } from "@/lib/location-task";
 
 const MapScreen = () => {
   const [location, setLocation] = useState(null);
@@ -33,6 +35,8 @@ const MapScreen = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [routeCoords, setRouteCoords] = useState([]);
   const [city, setCity] = useState("");
+  const pauseDuration = useRef(0);
+  const lastResumeTimestamp = useRef<number | null>(null);
 
   const [voiceOn, setVoiceOn] = useState(true);
   const spokenKilometers = useRef(new Set<number>());
@@ -40,7 +44,6 @@ const MapScreen = () => {
   const router = useRouter();
   const mapRef = useRef(null);
   const watchId = useRef(null);
-  const timerInterval = useRef(null);
   const lastLocation = useRef(null);
   const pausedTime = useRef(null);
   const visualWatchId = useRef(null);
@@ -149,44 +152,54 @@ const MapScreen = () => {
   }, [user]);
 
   useEffect(() => {
-    if (tracking) {
-      if (!isPaused) {
-        if (!startTime) {
-          setStartTime(new Date());
-        }
-        
-        timerInterval.current = setInterval(() => {
-          setElapsedTime((prev) => prev + 1);
-        }, 1000);
-
-        startLocationTracking();
-      } else {
-        stopLocationTracking();
-        if (timerInterval.current) {
-          clearInterval(timerInterval.current);
-          timerInterval.current = null;
-        }
+    if (tracking && !isPaused) {
+      if (!startTime) {
+        const now = new Date();
+        setStartTime(now);
+        lastResumeTimestamp.current = now.getTime();
+        pauseDuration.current = 0;
       }
+
+      startLocationTracking();
+    } else if (isPaused) {
+      stopLocationTracking();
     } else {
       stopAllTracking();
-      if (timerInterval.current) {
-        clearInterval(timerInterval.current);
-        timerInterval.current = null;
-      }
     }
 
     return () => {
       stopAllTracking();
-      if (timerInterval.current) {
-        clearInterval(timerInterval.current);
-        timerInterval.current = null;
-      }
     };
   }, [tracking, isPaused]);
+
 
   const startLocationTracking = async () => {
     try {
       startVisualTracking();
+
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      if (status !== "granted") {
+        console.warn("Background permission not granted");
+        return;
+      }
+
+      const isTaskDefined = await TaskManager.isTaskDefined(LOCATION_TASK_NAME);
+      const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
+
+      if (!hasStarted) {
+        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 5000,
+          distanceInterval: 5,
+          showsBackgroundLocationIndicator: true,
+          pausesUpdatesAutomatically: false,
+          foregroundService: {
+            notificationTitle: "TRIVISTA",
+            notificationBody: "Tracking your session in background.",
+            notificationColor: "#FACC15",
+          },
+        });
+      }
       
       if (!isPaused) {
         const subscription = await Location.watchPositionAsync(
@@ -258,11 +271,22 @@ const MapScreen = () => {
     }
   };
 
-  const stopAllTracking = () => {
+  const stopAllTracking = async () => {
     stopLocationTracking();
     if (visualWatchId.current) {
       visualWatchId.current.remove();
       visualWatchId.current = null;
+    }
+
+    try {
+      const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
+      if (hasStarted) {
+        await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+      } else {
+        console.log("Background task was never started, skipping stop.");
+      }
+    } catch (error) {
+      console.warn("Couldn't stop background task — it may not have been registered:", error.message);
     }
   };
 
@@ -337,6 +361,29 @@ const MapScreen = () => {
     return null;
   };
 
+  useEffect(() => {
+    let animationFrame;
+
+    const update = () => {
+      if (tracking && !isPaused && startTime) {
+        const now = Date.now();
+        const totalPaused = pauseDuration.current;
+        const activeTime = now - startTime.getTime() - totalPaused;
+        setElapsedTime(Math.floor(activeTime / 1000));
+      }
+
+      animationFrame = requestAnimationFrame(update);
+    };
+
+    if (tracking && !isPaused) {
+      animationFrame = requestAnimationFrame(update);
+    }
+
+    return () => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+    };
+  }, [tracking, isPaused, startTime]);
+
 
   const handleManualLogPress = async () => {
     const resolvedCity = await setCityForManualLogging();
@@ -370,6 +417,10 @@ const MapScreen = () => {
     setRouteCoords([]);
     setIsPaused(false);
     await resetVoiceTracking();
+    setStartTime(new Date());
+    pauseDuration.current = 0;
+    lastResumeTimestamp.current = Date.now();
+
 
     try {
       const initialPosition = await Location.getCurrentPositionAsync({
@@ -398,7 +449,7 @@ const MapScreen = () => {
 
   const pauseActivity = () => {
     setIsPaused(true);
-    pausedTime.current = new Date();
+    pausedTime.current = Date.now();
     stopLocationTracking();
     console.log("Activity paused");
   };
@@ -418,6 +469,13 @@ const MapScreen = () => {
     } catch (error) {
       console.error("Failed to get position for resume:", error);
     }
+
+    const now = Date.now();
+    if (pausedTime.current) {
+      pauseDuration.current += now - pausedTime.current;
+    }
+    lastResumeTimestamp.current = now;
+    pausedTime.current = null;
 
     setIsPaused(false);
     startLocationTracking();
