@@ -39,6 +39,8 @@ const Sessions = () => {
   const [typeModalVisible, setTypeModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  
+  const [sessionCoordData, setSessionCoordData] = useState({});
 
   const typeOptions = [
     { label: "All Sessions", value: "all" },
@@ -46,6 +48,48 @@ const Sessions = () => {
     { label: "Bike", value: "bike" },
     { label: "Swim", value: "swim" },
   ];
+
+  const calculateCoordinateData = (points) => {
+    if (!points || points.length === 0) {
+      return {
+        midLat: 0,
+        midLng: 0,
+        zoomLevel: 0.05, 
+      };
+    }
+
+    let minLat = points[0].latitude;
+    let maxLat = points[0].latitude;
+    let minLng = points[0].longitude;
+    let maxLng = points[0].longitude;
+
+    points.forEach(({ latitude, longitude }) => {
+      minLat = Math.min(minLat, latitude);
+      maxLat = Math.max(maxLat, latitude);
+      minLng = Math.min(minLng, longitude);
+      maxLng = Math.max(maxLng, longitude);
+    });
+
+    const midLat = (minLat + maxLat) / 2;
+    const midLng = (minLng + maxLng) / 2;
+
+    const latDelta = (maxLat - minLat);
+    const lngDelta = (maxLng - minLng);
+    
+    const paddingFactor = 0.003;
+    const minDelta = 0.003; 
+    
+    const zoomLevel = Math.max(
+      Math.max(latDelta * (1 + paddingFactor), lngDelta * (1 + paddingFactor)),
+      minDelta
+    );
+    
+    return {
+      midLat,
+      midLng,
+      zoomLevel,
+    };
+  };
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -59,8 +103,17 @@ const Sessions = () => {
         );
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map((doc) => doc.data());
+        
+        const coordData = {};
+        data.forEach((session, index) => {
+          if (session.coords && session.coords.length > 0) {
+            coordData[index] = calculateCoordinateData(session.coords);
+          }
+        });
+        
+        setSessionCoordData(coordData);
         setSessions(data);
-        setFilteredSessions(data); 
+        setFilteredSessions(data);
       } catch (error) {
         console.error("Failed to fetch sessions:", error);
       } finally {
@@ -162,67 +215,71 @@ const Sessions = () => {
         </Modal>
 
         {filteredSessions.length > 0 ? (
-          filteredSessions.map((session, idx) => (
-            <View key={idx} style={styles.sessionBox}>
-              <View style={styles.headerRow}>
-                <Text style={styles.typeText}>
-                  {typeIcon[session.type]}
-                </Text>
-                <Text style={styles.cityText}>
-                  {session.city}, {new Date(session.createdAt).toLocaleString()}
-                </Text>
-                <Text style={styles.feelingText}>{session.feeling}</Text>
-              </View>
-              <Text style={styles.sessionName}>{session.name}</Text>
-              <View style={{ 
-                width: mapWidth, 
-                height: 200, 
-                borderRadius: 10, 
-                overflow: 'hidden',
-                marginBottom: 10,
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
-              }}>
-                {session.coords && session.coords.length > 0 ? (
-                  <MapView
-                    style={{ width: '100%', height: '100%' }}
-                    region={{
-                      latitude: session.coords[0].latitude,
-                      longitude: session.coords[0].longitude,
-                      latitudeDelta: 0.01,
-                      longitudeDelta: 0.01,
-                    }}
-                    scrollEnabled={false}
-                    zoomEnabled={false}
-                  >
-                    <Polyline coordinates={session.coords} strokeWidth={4} strokeColor="#FACC15" />
-                  </MapView>
-                ) : (
-                  <Text style={{ color: "#ccc", fontFamily: "InterRegular", padding: 20, textAlign: "center" }}>
-                    No GPS data available. This session was manually logged.
+          filteredSessions.map((session, idx) => {
+            const sessionData = sessionCoordData[sessions.indexOf(session)];
+            
+            return (
+              <View key={idx} style={styles.sessionBox}>
+                <View style={styles.headerRow}>
+                  <Text style={styles.typeText}>
+                    {typeIcon[session.type]}
                   </Text>
-                )}
+                  <Text style={styles.cityText}>
+                    {session.city}, {new Date(session.createdAt).toLocaleString()}
+                  </Text>
+                  <Text style={styles.feelingText}>{session.feeling}</Text>
+                </View>
+                <Text style={styles.sessionName}>{session.name}</Text>
+                <View style={{ 
+                  width: mapWidth, 
+                  height: 200, 
+                  borderRadius: 10, 
+                  overflow: 'hidden',
+                  marginBottom: 10,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: "rgba(255, 255, 255, 0.05)",
+                }}>
+                  {session.coords && session.coords.length > 0 && sessionData ? (
+                    <MapView
+                      style={{ width: '100%', height: '100%' }}
+                      region={{
+                        latitude: sessionData.midLat,
+                        longitude: sessionData.midLng,
+                        latitudeDelta: sessionData.zoomLevel,
+                        longitudeDelta: sessionData.zoomLevel,
+                      }}
+                      scrollEnabled={false}
+                      zoomEnabled={false}
+                    >
+                      <Polyline coordinates={session.coords} strokeWidth={4} strokeColor="#FACC15" />
+                    </MapView>
+                  ) : (
+                    <Text style={{ color: "#ccc", fontFamily: "InterRegular", padding: 20, textAlign: "center" }}>
+                      No GPS data available. This session was manually logged.
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.stats}>
+                  <View style={styles.statBlock}>
+                    <Text style={styles.statTitle}>Time</Text>
+                    <Text style={styles.stat}>{formatTime(session.time)}</Text>
+                    <Text style={styles.statBottom}>hh:mm:ss</Text>
+                  </View>
+                  <View style={styles.statBlock}>
+                    <Text style={styles.statTitle}>Distance</Text>
+                    <Text style={styles.stat}>{session.distance}</Text>
+                    <Text style={styles.statBottom}>km</Text>
+                  </View>
+                  <View style={styles.statBlock}>
+                    <Text style={styles.statTitle}>Pace</Text>
+                    <Text style={styles.stat}>{formatPace(session.pace)}</Text>
+                    <Text style={styles.statBottom}>min/km</Text>
+                  </View>
+                </View>
               </View>
-              <View style={styles.stats}>
-                <View style={styles.statBlock}>
-                  <Text style={styles.statTitle}>Time</Text>
-                  <Text style={styles.stat}>{formatTime(session.time)}</Text>
-                  <Text style={styles.statBottom}>hh:mm:ss</Text>
-                </View>
-                <View style={styles.statBlock}>
-                  <Text style={styles.statTitle}>Distance</Text>
-                  <Text style={styles.stat}>{session.distance}</Text>
-                  <Text style={styles.statBottom}>km</Text>
-                </View>
-                <View style={styles.statBlock}>
-                  <Text style={styles.statTitle}>Pace</Text>
-                  <Text style={styles.stat}>{formatPace(session.pace)}</Text>
-                  <Text style={styles.statBottom}>min/km</Text>
-                </View>
-              </View>
-            </View>
-          ))
+            );
+          })
         ) : (
           <View style={styles.noSessionsContainer}>
             <Text style={styles.noSessionsText}>No training sessions yet</Text>

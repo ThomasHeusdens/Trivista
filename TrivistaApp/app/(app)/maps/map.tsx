@@ -594,6 +594,18 @@ const MapScreen = () => {
             <TouchableOpacity style={styles.stopButton} onPress={stopActivity}>
               <StopCircle color="#1E1E1E" size={28} />
             </TouchableOpacity>
+            <View style={styles.navButtonContainer}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setVoiceOn(prev => !prev)}
+              >
+                {voiceOn ? (
+                  <Volume2 color="#1E1E1E" size={24} />
+                ) : (
+                  <VolumeX color="#1E1E1E" size={24} />
+                )}
+              </TouchableOpacity>
+            </View>
           </>
         ) : (
           <>
@@ -626,7 +638,6 @@ const MapScreen = () => {
                   <VolumeX color="#1E1E1E" size={24} />
                 )}
               </TouchableOpacity>
-
             </View>
           </>
         )}
