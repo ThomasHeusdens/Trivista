@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Platform, Modal, FlatList, TextInput } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MapView, { Polyline } from "react-native-maps";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
@@ -7,7 +7,7 @@ import { db } from "@/lib/firebase-db";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import CustomAlert from "@/components/CustomAlert";
-import { Trash2, Info } from "lucide-react-native";
+import { Trash2 } from "lucide-react-native";
 
 const SessionSummary = () => {
   const { time, distance, pace, coords, type, city } = useLocalSearchParams();
@@ -21,6 +21,12 @@ const SessionSummary = () => {
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const router = useRouter();
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 0,
+    longitude: 0,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  });
 
   const typeOptions = [
     { label: "Run", value: "run" },
@@ -34,6 +40,18 @@ const SessionSummary = () => {
     { label: "Hard", value: "Hard" },
     { label: "Max Effort", value: "Max" },
   ];
+
+  useEffect(() => {
+    if (parsedCoords && parsedCoords.length > 0) {
+      const mapData = calculateCoordinateData(parsedCoords);
+      setMapRegion({
+        latitude: mapData.midLat,
+        longitude: mapData.midLng,
+        latitudeDelta: mapData.zoomLevel,
+        longitudeDelta: mapData.zoomLevel,
+      });
+    }
+  }, [parsedCoords]);
 
   const handleSave = async () => {
     if (!nameOfSession.trim()) {
@@ -83,6 +101,48 @@ const SessionSummary = () => {
     } catch (err) {
       console.error("Failed to save session:", err);
     }
+  };
+
+  const calculateCoordinateData = (points) => {
+    if (!points || points.length === 0) {
+      return {
+        midLat: 0,
+        midLng: 0,
+        zoomLevel: 0.05, 
+      };
+    }
+
+    let minLat = points[0].latitude;
+    let maxLat = points[0].latitude;
+    let minLng = points[0].longitude;
+    let maxLng = points[0].longitude;
+
+    points.forEach(({ latitude, longitude }) => {
+      minLat = Math.min(minLat, latitude);
+      maxLat = Math.max(maxLat, latitude);
+      minLng = Math.min(minLng, longitude);
+      maxLng = Math.max(maxLng, longitude);
+    });
+
+    const midLat = (minLat + maxLat) / 2;
+    const midLng = (minLng + maxLng) / 2;
+
+    const latDelta = (maxLat - minLat);
+    const lngDelta = (maxLng - minLng);
+    
+    const paddingFactor = 0.003;
+    const minDelta = 0.003; 
+    
+    const zoomLevel = Math.max(
+      Math.max(latDelta * (1 + paddingFactor), lngDelta * (1 + paddingFactor)),
+      minDelta
+    );
+    
+    return {
+      midLat,
+      midLng,
+      zoomLevel,
+    };
   };
 
   return (
@@ -223,12 +283,7 @@ const SessionSummary = () => {
       <View style={styles.mapContainer}>
         <MapView
           style={styles.innerMap}
-          region={{
-            latitude: parsedCoords[0]?.latitude || 0,
-            longitude: parsedCoords[0]?.longitude || 0,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
+          region={mapRegion}
           scrollEnabled={false}
           zoomEnabled={false}
         >
