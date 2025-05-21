@@ -10,6 +10,7 @@ import { useFonts } from "expo-font";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet, StatusBar } from "react-native";
+import { InfoAlertProvider } from "@/components/InfoAlertContext";
 import "../global.css";
 
 /**
@@ -41,9 +42,11 @@ export default function Root() {
     <>
       <StatusBar translucent backgroundColor="transparent" />
         <SessionProvider>
-          <GestureHandlerRootView style={styles.container}>
-            <Slot />
-          </GestureHandlerRootView>
+          <InfoAlertProvider>
+            <GestureHandlerRootView style={styles.container}>
+              <Slot />
+            </GestureHandlerRootView>
+          </InfoAlertProvider>
         </SessionProvider>
     </>
   );

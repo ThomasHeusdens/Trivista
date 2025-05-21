@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Platform, Modal, FlatList, TextInput } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MapView, { Polyline } from "react-native-maps";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
@@ -16,7 +16,7 @@ const SessionSummary = () => {
   const [nameOfSession, setNameOfSession] = useState("");
   const [feeling, setFeeling] = useState("");
   const [feelingModalVisible, setFeelingModalVisible] = useState(false);
-  const parsedCoords = JSON.parse(coords || "[]");
+  const parsedCoords = useMemo(() => JSON.parse(coords || "[]"), [coords]);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
@@ -51,7 +51,7 @@ const SessionSummary = () => {
         longitudeDelta: mapData.zoomLevel,
       });
     }
-  }, [parsedCoords]);
+  }, [coords]);
 
   const handleSave = async () => {
     if (!nameOfSession.trim()) {
