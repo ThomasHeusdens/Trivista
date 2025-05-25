@@ -261,7 +261,7 @@ const Sessions = () => {
                   )}
                 </View>
                 <View style={styles.stats}>
-                  <View style={styles.statBlock}>
+                  <View style={styles.statBlockTime}>
                     <Text style={styles.statTitle}>Time</Text>
                     <Text style={styles.stat}>{formatTime(session.time)}</Text>
                     <Text style={styles.statBottom}>hh:mm:ss</Text>
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   sessionBox: {
-    backgroundColor: "#1E1E1E",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 10,
     padding: 10,
     marginBottom: 30,
@@ -373,7 +373,11 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   statBlock: {
-    width: "35%",
+    width: "29%",
+    alignItems: "center",
+  },
+  statBlockTime: {
+    width: "40%",
     alignItems: "center",
   },
   statTitle: {

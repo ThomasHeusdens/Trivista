@@ -115,9 +115,14 @@ export default function SignUp() {
           className="justify-center items-center"
         >
           <Text className="text-white text-3xl mb-2 font-[InterBold]">Welcome on Trivista!</Text>
-          <Text className="text-white text-base mb-9 font-[InterRegular]">
+          <Text className="text-white text-base mb-4 font-[InterRegular]">
             Train for your first sprint triathlon in just 12 weeks.
           </Text>
+          <Image
+            source={require("@/assets/images/triathlon-logo.png")}
+            className="w-[100%] h-[40px] mb-4"
+            resizeMode="contain"
+          />
           <Image
             source={require("@/assets/images/logo.png")}
             className="w-36 h-36 mb-9"
@@ -219,11 +224,6 @@ export default function SignUp() {
         title={alertTitle}
         message={alertMessage}
         onClose={() => setAlertVisible(false)}
-      />
-      <Image
-        source={require("@/assets/images/triathlon-logo.png")}
-        className="w-[100%] h-[40px] top-[50px] absolute"
-        resizeMode="contain"
       />
     </KeyboardAvoidingView>
   );

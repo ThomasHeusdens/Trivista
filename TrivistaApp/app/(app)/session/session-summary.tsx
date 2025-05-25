@@ -292,17 +292,17 @@ const SessionSummary = () => {
       </View>
 
       <View style={styles.stats}>
-        <View className="flex-column w-[35%]">
+        <View className="flex-column w-[40%]">
           <Text style={styles.statTitle}>Time</Text>
           <Text style={styles.stat}>{formatTime(Number(time))}</Text>
           <Text style={styles.statBottom}>hh:mm:ss</Text>
         </View>
-        <View className="flex-column w-[30%]">
+        <View className="flex-column w-[25%]">
           <Text style={styles.statTitle}>Distance</Text>
           <Text style={styles.stat}>{(Number(distance) / 1000).toFixed(2)}</Text>
           <Text style={styles.statBottom}>km</Text>
         </View>
-        <View className="flex-column w-[30%]">
+        <View className="flex-column w-[28%]">
           <Text style={styles.statTitle}>Pace</Text>
           <Text style={styles.stat}>{formatPace(Number(pace))}</Text>
           <Text style={styles.statBottom}>min/km</Text>

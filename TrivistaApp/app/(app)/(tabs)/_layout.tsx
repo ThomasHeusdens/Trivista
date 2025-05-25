@@ -134,9 +134,9 @@ export default function TabLayout() {
         visible={infoVisible}
         title="Why Trivista?"
         message={
-          "Training for a triathlon can feel overwhelming — it’s not just about swimming, biking, and running, but also stretching, eating right, and recovering well.\n\n" +
-          "That’s where Trivista comes in. We simplify your journey by guiding you through everything: from daily tips to smart nutrition and recovery habits.\n\n" +
-          "Over the next 12 weeks, you'll get personalized insights and tools to train smarter, track your meals, and stay consistent — without overthinking it.\n\n" +
+          "Training for a triathlon can feel overwhelming — especially if you're starting from zero. But you don’t need to be an expert, or have hours a day to train.\n\n" +
+          "Trivista is built to help you complete your first sprint triathlon in just 12 weeks. We guide you through every step: smart daily nutrition, focused training, effective stretching, and science-backed recovery — all in one intuitive app.\n\n" +
+          "With personalized insights and routines designed for beginners, you'll build confidence, stay consistent, and make steady progress — without overthinking the process.\n\n" +
           "You train — we take care of the rest."
         }
         onClose={() => setInfoVisible(false)}

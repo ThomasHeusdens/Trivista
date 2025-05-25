@@ -132,13 +132,13 @@ const FAQ = () => {
         data={faqItems}
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={{
-            paddingTop: 122,    // Space below top nav
-            paddingBottom: 82, // Space above bottom nav
+            paddingTop: 122,
+            paddingBottom: 82,
             paddingHorizontal: 15,
         }}
         renderItem={({ item, index }) => (
           <TouchableOpacity onPress={() => toggleItem(index)} style={{ marginBottom: 12 }}>
-            <BlurView intensity={60} tint="light" style={styles.card}>
+            <BlurView intensity={30} tint="light" style={styles.card}>
               <View style={styles.row}>
                 <Text style={styles.question}>{item.question}</Text>
                 <Animated.View style={{ transform: [{ rotate: getRotation(index) }] }}>

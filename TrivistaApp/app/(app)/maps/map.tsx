@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import MapView, { PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
-import { ArrowLeft, Info, Play, Pause, StopCircle, PencilRuler, Volume2, VolumeX } from "lucide-react-native";
+import { ArrowLeft, Info, Play, Pause, StopCircle, PencilLine, Volume2, VolumeX } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import CustomAlert from "@/components/CustomAlert";
 import { useSession } from "@/context";
@@ -556,17 +556,17 @@ const MapScreen = () => {
       {tracking && (
         <View style={styles.trackingBar}>
           <View style={styles.stats}>
-            <View className="flex-column w-[35%]">
+            <View className="flex-column w-[40%]">
               <Text style={styles.statTitle}>Time</Text>
               <Text style={styles.stat}>{formatTime(elapsedTime)}</Text>
               <Text style={styles.statBottom}>hh:mm:ss</Text>
             </View>
-            <View className="flex-column w-[30%]">
+            <View className="flex-column w-[25%]">
               <Text style={styles.statTitle}>Distance</Text>
               <Text style={styles.stat}>{(distance / 1000).toFixed(2)}</Text>
               <Text style={styles.statBottom}>km</Text>
             </View>
-            <View className="flex-column w-[30%]">
+            <View className="flex-column w-[28%]">
               <Text style={styles.statTitle}>Pace</Text>
               <Text style={styles.stat}>{formatPace(pace)}</Text>
               <Text style={styles.statBottom}>min/km</Text>
@@ -611,7 +611,7 @@ const MapScreen = () => {
           <>
             <View style={styles.navButtonContainer}>
               <TouchableOpacity style={styles.iconButton} onPress={handleManualLogPress}>
-                <PencilRuler color="#1E1E1E" size={24} />
+                <PencilLine color="#1E1E1E" size={24} />
               </TouchableOpacity>
             </View>
 
