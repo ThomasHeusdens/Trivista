@@ -104,10 +104,15 @@ export default function SignIn() {
           resizeMode="cover"
           className="justify-center items-center"
         >
-          <Text className="text-white text-3xl mb-9 font-[InterBold]">
+          <Text className="text-white text-3xl mb-4 font-[InterBold]">
             Welcome Back!
           </Text>
 
+          <Image
+            source={require("@/assets/images/triathlon-logo.png")}
+            className="w-[100%] h-[40px] mb-4"
+            resizeMode="contain"
+          />
           <Image
             source={require("@/assets/images/logo.png")}
             className="w-40 h-40 mb-9"
@@ -189,11 +194,6 @@ export default function SignIn() {
         title={alertTitle}
         message={alertMessage}
         onClose={() => setAlertVisible(false)}
-      />
-      <Image
-        source={require("@/assets/images/triathlon-logo.png")}
-        className="w-[100%] h-[40px] top-[50px] absolute"
-        resizeMode="contain"
       />
     </KeyboardAvoidingView>
   );
