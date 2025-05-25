@@ -1,17 +1,16 @@
 /**
- * (App) Index Redirect
- *
- * Automatically redirects authenticated users to the main "Eat" tab.
+ * App root route redirect.
+ * Automatically routes users to the main "Eat" tab after onboarding is complete.
+ * Serves as a passive entry point for authenticated sessions.
+ * @module
  */
 import { Redirect } from "expo-router";
 
 /**
- * Index()
+ * Redirects to the "/(app)/(tabs)/eat" route as the default landing page after onboarding.
  *
- * Immediately redirects to the main Eat tab after onboarding is complete.
- *
- * @returns {JSX.Element} Redirect component
+ * @returns {React.JSX.Element} Redirect component
  */
-export default function Index() {
+export default function Index(): React.JSX.Element {
   return <Redirect href="/(app)/(tabs)/eat" />;
 }

@@ -1,6 +1,8 @@
 /**
- * Eat screen
- * Displays daily calorie and macronutrient goals with meal selection to estimate intake.
+ * Displays the user's daily calorie and macronutrient goals along with interactive meal selection.
+ * Retrieves nutritional targets and meals from Firestore, computes estimated intake,
+ * and renders visual feedback through charts and meal cards.
+ * @module
  */
 import NutritionProgress from "@/components/NutritionProgress";
 import { useSession } from "@/context";
@@ -26,10 +28,13 @@ const screenHeight = Dimensions.get("window").height;
 const screenWidth = Dimensions.get("window").width;
 
 /**
- * Main component that displays user's daily nutrition goals
- * and allows meal selection and review for each meal type.
+ * Displays the main nutrition tracking interface.
+ * Fetches user nutrition goals, meal data, and saved selections from Firestore.
+ * Allows users to select meals and visually monitor their calorie and macro intake throughout the day.
+ *
+ * @returns {React.JSX.Element} The rendered nutrition tracking screen
  */
-const Eat = () => {
+const Eat = (): React.JSX.Element => {
   const { user } = useSession();
   const uid = user?.uid;
   const router = useRouter();
@@ -52,7 +57,7 @@ const Eat = () => {
    *
    * @returns {Promise<void>}
    */
-  const fetchNutrition = async () => {
+  const fetchNutrition = async (): Promise<void> => {
     try {
       const ref = doc(db, "UserNutrition", uid);
       const snap = await getDoc(ref);
@@ -62,7 +67,7 @@ const Eat = () => {
       setNutritionLoaded(true);
     } catch (err) {
       console.error("Error fetching nutrition:", err);
-      setNutritionLoaded(true); // Still mark as loaded even on error
+      setNutritionLoaded(true);
     }
   };
 
@@ -71,7 +76,7 @@ const Eat = () => {
    *
    * @returns {Promise<void>}
    */
-  const fetchMeals = async () => {
+  const fetchMeals = async (): Promise<void> => {
     try {
       const querySnapshot = await getDocs(collection(db, "Meals"));
       const fetched = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -79,7 +84,7 @@ const Eat = () => {
       setMealsLoaded(true);
     } catch (err) {
       console.error("Error fetching meals:", err);
-      setMealsLoaded(true); // Still mark as loaded even on error
+      setMealsLoaded(true);
     }
   };
 
@@ -88,7 +93,7 @@ const Eat = () => {
    *
    * @returns {Promise<void>}
    */
-  const fetchIngredients = async () => {
+  const fetchIngredients = async (): Promise<void> => {
     try {
       const querySnapshot = await getDocs(collection(db, "Ingredients"));
       const result = {};
@@ -99,7 +104,7 @@ const Eat = () => {
       setIngredientsLoaded(true);
     } catch (err) {
       console.error("Error fetching ingredients:", err);
-      setIngredientsLoaded(true); // Still mark as loaded even on error
+      setIngredientsLoaded(true);
     }
   };
 
@@ -148,7 +153,7 @@ const Eat = () => {
       setSavedMealsLoaded(true);
     } catch (err) {
       console.error("Error fetching user meals:", err);
-      setSavedMealsLoaded(true); // Still mark as loaded even on error
+      setSavedMealsLoaded(true);
     }
   };
 
@@ -167,7 +172,6 @@ const Eat = () => {
     }
   }, [uid, meals, savedMealsLoaded]);
 
-  // Check if all data is loaded and set loading state accordingly
   useEffect(() => {
     if (nutritionLoaded && mealsLoaded && ingredientsLoaded && 
         (savedMealsLoaded || meals.length === 0)) {
@@ -182,7 +186,7 @@ const Eat = () => {
    * @param {Object} meal - Meal object containing an array of ingredient IDs.
    * @returns {Object} Object with total macro values.
    */
-  const calculateMacros = (meal) => {
+  const calculateMacros = (meal: object): object => {
     const macros = { calorie: 0, carbs: 0, proteins: 0, fat: 0 };
     if (!meal.ingredients || !ingredients) return macros;
     meal.ingredients.forEach((id) => {
@@ -204,9 +208,9 @@ const Eat = () => {
    * @param {string} type - Meal type (e.g., "breakfast").
    * @param {string} label - Section title (e.g., "Breakfast").
    * @param {string} hour - Suggested time for the meal.
-   * @returns {JSX.Element}
+   * @returns {React.JSX.Element}
    */
-  const renderMealSection = (type, label, hour) => {
+  const renderMealSection = (type: string, label: string, hour: string): React.JSX.Element => {
     if (savedMealsByType[type]) {
       const meal = savedMealsByType[type];
       const macros = calculateMacros(meal);

@@ -1,3 +1,9 @@
+/**
+ * This screen displays visual insights into the user's training progress,
+ * including goal tracking, distance charts, best pace, and subjective effort analysis.
+ * Training sessions are fetched from Firestore and charted using `react-native-chart-kit`.
+ * * @module
+ */
 import React, { useState, useEffect } from "react";
 import { 
   View, 
@@ -20,6 +26,9 @@ import { getAuth } from "firebase/auth";
 import { db } from "@/lib/firebase-db";
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
+/**
+ * Represents a single user training session record stored in Firestore.
+ */
 interface TrainingSession {
   id: string;
   userId: string;
@@ -46,8 +55,17 @@ const goalByType = {
   swim: 0.75
 };
 
-const Progress = () => {
-  const [selectedType, setSelectedType] = useState("run");
+type TrainingType = 'run' | 'bike' | 'swim';
+
+/**
+ * React component for displaying training analytics using line charts and statistics.
+ * Users can filter data by activity type (run, bike, swim) and track performance
+ * over time, including visual goal progress and subjective feedback trends.
+ *
+ * @returns {React.JSX.Element} Rendered progress tracking screen
+ */
+const Progress = (): React.JSX.Element => {
+  const [selectedType, setSelectedType] = useState<TrainingType>("run");
   const [typeModalVisible, setTypeModalVisible] = useState(false);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +85,13 @@ const Progress = () => {
     }
   }, [sessions, selectedType]);
 
-  const fetchSessions = async () => {
+  /**
+   * Loads all training sessions for the current user, ordered by timestamp.
+   * Stores the results in local state.
+   * @async
+   * @returns {Promise<void>}
+   */
+  const fetchSessions = async (): Promise<void> => {
     try {
       setLoading(true);
       const user = getAuth().currentUser;
@@ -96,15 +120,20 @@ const Progress = () => {
     }
   };
 
+  /**
+   * Filters sessions by selected activity type, computes statistics like:
+   * - average distance
+   * - total distance
+   * - pace
+   * - improvement from first to last session
+   * - average subjective effort (feeling)
+   *
+   * Updates the animated progress bar and chart configuration.
+   */
   const prepareChartData = () => {
     let filteredSessions = sessions;
-    
-    if (selectedType !== "all") {
-      filteredSessions = sessions.filter(session => session.type === selectedType);
-    }
 
     if (filteredSessions.length === 0) {
-      const goalDistance = goalByType[selectedType];
       goalProgress.value = withTiming(0, { duration: 800 }); 
       setChartData(null);
       return;
@@ -155,7 +184,7 @@ const Progress = () => {
     const reverseFeelingLevels = ['Easy', 'Moderate', 'Hard', 'Max'];
 
     const avgFeelingNumeric = feelings
-      .map(f => feelingLevels[f])
+      .map(f => feelingLevels[f as keyof typeof feelingLevels])
       .filter(Boolean);
 
     const avgFeelingValue = avgFeelingNumeric.length > 0
@@ -184,7 +213,15 @@ const Progress = () => {
     });
   };
 
-  const getChartConfig = (yAxisMax, isSinglePoint = false) => ({
+  /**
+   * Returns a configuration object for the line chart component,
+   * customized based on chart type and value density.
+   *
+   * @param {number} yAxisMax - Maximum value for Y-axis.
+   * @param {boolean} isSinglePoint - Whether only one session is present.
+   * @returns {object} Chart.js config object.
+   */
+  const getChartConfig = (yAxisMax: number, isSinglePoint: boolean = false): object => ({
     backgroundColor: "transparent",
     backgroundGradientFrom: "rgba(30, 30, 30, 0.8)",
     backgroundGradientTo: "rgba(30, 30, 30, 0.4)",
@@ -219,7 +256,7 @@ const Progress = () => {
     yAxisInterval: 1,
     fromZero: true,
     segments: 4,
-    formatYLabel: (value) => {
+    formatYLabel: (value: string) => {
       const numValue = parseFloat(value);
       if (selectedType === 'swim') {
         return numValue.toFixed(3);
@@ -233,7 +270,14 @@ const Progress = () => {
     width: `${Math.min(goalProgress.value * 100, 100)}%`,
   }));
 
-  const getImprovementStatus = (improvementValue) => {
+  /**
+   * Interprets the user's progress change and returns styling details
+   * for the improvement badge (color, icon, and label).
+   *
+   * @param {string} improvementValue - Numeric improvement string.
+   * @returns {object} Display info for the improvement badge.
+   */
+  const getImprovementStatus = (improvementValue: string): object => {
     const improvement = parseFloat(improvementValue);
     
     if (isNaN(improvement)) {

@@ -1,3 +1,13 @@
+/**
+ * Displays a summary of a recently completed session (run, bike, swim) tracked by GPS.
+ * Allows the user to:
+ * - See session stats: time, distance, pace
+ * - Review the route on a map
+ * - Select session type and perceived effort
+ * - Name and save the session to Firestore
+ * Handles platform-specific UI for selecting type and effort (Picker for Android, Modal for iOS).
+ * @component
+ */
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Platform, Modal, FlatList, TextInput } from "react-native";
 import React, { useState, useEffect, useMemo } from "react";
 import MapView, { Polyline } from "react-native-maps";
@@ -9,7 +19,13 @@ import { getAuth } from "firebase/auth";
 import CustomAlert from "@/components/CustomAlert";
 import { Trash2 } from "lucide-react-native";
 
-const SessionSummary = () => {
+/**
+ * Collects additional details for a recently tracked session and saves them to Firestore.
+ * Uses props from navigation (via `useLocalSearchParams`) for time, distance, pace, route, etc.
+ *
+ * @returns {React.JSX.Element}
+ */
+const SessionSummary = (): React.JSX.Element => {
   const { time, distance, pace, coords, type, city } = useLocalSearchParams();
   const [selectedType, setSelectedType] = useState(type || "");
   const [typeModalVisible, setTypeModalVisible] = useState(false);
@@ -41,6 +57,12 @@ const SessionSummary = () => {
     { label: "Max Effort", value: "Max" },
   ];
 
+  /**
+   * When the route coordinates (`parsedCoords`) change,
+   * compute the map region to center the view on the route with an appropriate zoom level.
+   *
+   * This ensures the Polyline (session path) is fully visible in the MapView.
+   */
   useEffect(() => {
     if (parsedCoords && parsedCoords.length > 0) {
       const mapData = calculateCoordinateData(parsedCoords);
@@ -53,7 +75,16 @@ const SessionSummary = () => {
     }
   }, [coords]);
 
-  const handleSave = async () => {
+  /**
+   * Validates form fields and saves the session to Firestore.
+   *
+   * Fields saved include: userId, name, type, feeling, time, distance, pace, route, and city.
+   * Alerts user if any required field is missing.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
+  const handleSave = async (): Promise<void> => {
     if (!nameOfSession.trim()) {
       setAlertTitle("Missing Fields");
       setAlertMessage("Please give your training session a name.");
@@ -103,7 +134,21 @@ const SessionSummary = () => {
     }
   };
 
-  const calculateCoordinateData = (points) => {
+  /**
+   * Calculates center and zoom level for displaying route on the map.
+   *
+   * @param {Array} points - Array of coordinate objects (latitude, longitude)
+   * @returns {{
+   *   midLat: number,
+   *   midLng: number,
+   *   zoomLevel: number
+   * }}
+   */
+  const calculateCoordinateData = (points: Array<any>): {
+    midLat: number;
+    midLng: number;
+    zoomLevel: number;
+  } => {
     if (!points || points.length === 0) {
       return {
         midLat: 0,

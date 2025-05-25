@@ -1,7 +1,9 @@
 /**
- * Onboarding Step 2
- *
- * Collects basic user info (age, height, weight, gender, goal) and stores calculated nutrition needs in Firestore.
+ * Step 2 in the onboarding flow.
+ * Collects user attributes (age, height, weight, gender, and body composition goal),
+ * calculates estimated daily caloric and macronutrient needs,
+ * and stores the results in Firestore under the authenticated user.
+ * @module
  */
 import {
   Text,
@@ -26,13 +28,13 @@ import { db } from "@/lib/firebase-db";
 import CustomAlert from "@/components/CustomAlert";
 
 /**
- * Onboarding2()
+ * Displays a user input form for age, height, weight, gender, and fitness goal.
+ * Calculates nutritional needs using the Mifflin-St Jeor formula and saves results to Firestore.
+ * Navigates to the next onboarding screen upon success.
  *
- * Displays a form to gather body composition details and calculates calorie/macro needs.
- *
- * @returns {JSX.Element} Step 2 onboarding screen
+ * @returns {React.JSX.Element} Step 2 onboarding screen
  */
-export default function Onboarding2() {
+export default function Onboarding2(): React.JSX.Element {
   const [age, setAge] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -64,14 +66,17 @@ export default function Onboarding2() {
    * @param {string} value - Input value
    * @returns {boolean} True if valid whole number
    */
-  const isWholeNumber = (value: string) => /^\d+$/.test(value);
+  const isWholeNumber = (value: string): boolean => /^\d+$/.test(value);
 
   /**
-   * Validates form data, calculates nutrition targets, and saves to Firestore.
-   *
+   * Validates user inputs and calculates nutritional needs based on input data.
+   * Applies the Mifflin-St Jeor equation and adjusts based on body composition goal.
+   * Saves calculated values to Firestore under the current user's ID.
+   * Shows alerts for any validation or submission errors.
+   * @async
    * @returns {Promise<void>}
    */
-  const validateAndContinue = async () => {
+  const validateAndContinue = async (): Promise<void> => {
     setLoading(true); 
     if (!age || !height || !weight || !gender || !compositionGoal) {
       setAlertTitle("Missing Information");
@@ -117,7 +122,6 @@ export default function Onboarding2() {
       return;
     }
 
-    // BMR Calculation
     let bmr = 0;
     if (gender === "male") {
       bmr = 10 * weightNum + 6.25 * heightNum - 5 * ageNum + 5;
@@ -154,12 +158,21 @@ export default function Onboarding2() {
     router.push("/onboarding/page3");
   };
 
+  /**
+   * Renders a modal for selecting gender or body composition goal on iOS.
+   *
+   * @param {boolean} visible - Whether the modal is visible
+   * @param {(val: boolean) => void} setVisible - Function to toggle modal visibility
+   * @param {{ label: string, value: string }[]} options - List of selectable options
+   * @param {(val: string) => void} setter - Function to apply selected value
+   * @returns {React.JSX.Element} Rendered modal with selectable options
+   */
   const renderOptionModal = (
     visible: boolean,
     setVisible: (val: boolean) => void,
     options: { label: string; value: string }[],
     setter: (val: string) => void
-  ) => (
+  ): React.JSX.Element => (
     <Modal transparent animationType="fade" visible={visible}>
       <TouchableWithoutFeedback onPress={() => setVisible(false)}>
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#000000aa" }}>

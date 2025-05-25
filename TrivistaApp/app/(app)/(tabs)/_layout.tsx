@@ -1,8 +1,8 @@
 /**
- * Main Tab Layout (Eat, Stretch, Train, Recover)
- *
- * Provides top and bottom navigation bars with custom styles and navigation actions
- * for the main authenticated pages of the app.
+ * Layout component for the main authenticated sections of the app: Eat, Stretch, Train, and Recover.
+ * Renders a customized header and bottom tab navigator with navigation actions and styling.
+ * Includes a global alert for informational content accessed from the top-left icon.
+ * @module
  */
 import { Tabs } from "expo-router";
 import { TouchableOpacity, Text } from "react-native";
@@ -20,14 +20,13 @@ import CustomAlert from "@/components/CustomAlert";
 import { useInfoAlert } from "@/components/InfoAlertContext";
 
 /**
- * TabLayout()
+ * Displays a custom top and bottom tab layout for the four main features of the app:
+ * Eat, Stretch, Train, and Recover. Includes styled navigation icons and profile access.
+ * Also renders a persistent informational alert modal triggered from the header.
  *
- * Renders the main tab navigation with custom header and bottom tab styles.
- * Includes navigation to the profile tabs and notification icon.
- *
- * @returns {JSX.Element} Tab navigator with 4 primary tabs
+ * @returns {React.JSX.Element} Tab navigator with 4 primary tabs
  */
-export default function TabLayout() {
+export default function TabLayout(): React.JSX.Element {
   const navigation = useNavigation<DrawerNavigationProp<any>>();
   const { infoVisible, setInfoVisible } = useInfoAlert();
 
@@ -129,7 +128,6 @@ export default function TabLayout() {
         />
       </Tabs>
 
-      {/* ✅ This is outside <Tabs>, so it renders correctly */}
       <CustomAlert
         visible={infoVisible}
         title="Why Trivista?"

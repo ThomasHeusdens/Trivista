@@ -1,3 +1,9 @@
+/**
+ * Main workout tracking screen that displays a live map view of the user's path.
+ * Includes support for real-time GPS tracking, distance and pace calculation,
+ * voice feedback on progress, pause/resume handling, and session summary navigation.
+ * @module
+ */
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -20,7 +26,14 @@ import * as Speech from "expo-speech";
 import * as TaskManager from "expo-task-manager";
 import { LOCATION_TASK_NAME } from "@/lib/location-task";
 
-const MapScreen = () => {
+/**
+ * Main training session screen that allows users to track outdoor activities such as running, biking, or swimming.
+ * Handles various session states: not started, running, paused, and completed.
+ *
+ * @returns {React.JSX.Element} Interactive training screen with map and controls.
+ */
+
+const MapScreen = (): React.JSX.Element => {
   const [location, setLocation] = useState(null);
   const [region, setRegion] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +62,17 @@ const MapScreen = () => {
   const visualWatchId = useRef(null);
   const { user } = useSession();
 
-  const speakUpdate = (km: number, timeSec: number, paceMinPerKm: number) => {
+  /**
+   * Uses text-to-speech to announce progress updates during training.
+   * Announces the completed kilometer number, total time elapsed, and current pace.
+   *
+   * @param {number} km - The completed kilometer to announce.
+   * @param {number} timeSec - Total elapsed time in seconds.
+   * @param {number} paceMinPerKm - Current pace in minutes per kilometer.
+   *
+   * @returns {void}
+   */
+  const speakUpdate = (km: number, timeSec: number, paceMinPerKm: number): void => {
     try {
       const minutes = Math.floor(timeSec / 60);
       const seconds = timeSec % 60;
@@ -71,6 +94,10 @@ const MapScreen = () => {
     }
   };
 
+  /**
+   * Requests foreground location permission and fetches the user's current position
+   * to center the map initially.
+   */
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -96,6 +123,10 @@ const MapScreen = () => {
     })();
   }, []);
 
+  /**
+   * When not actively tracking, follows the user's location on the map
+   * with periodic updates every few seconds.
+   */
   useEffect(() => {
     let idleWatcher;
 
@@ -127,7 +158,9 @@ const MapScreen = () => {
     };
   }, [tracking]);
 
-
+  /**
+   * Fetches the current day’s training data from Firestore based on the user's start date.
+   */
   useEffect(() => {
     const fetchTraining = async () => {
       try {
@@ -151,6 +184,10 @@ const MapScreen = () => {
     if (user) fetchTraining();
   }, [user]);
 
+  /**
+   * Manages starting, pausing, and stopping both visual and background tracking
+   * depending on the current tracking and pause state.
+   */
   useEffect(() => {
     if (tracking && !isPaused) {
       if (!startTime) {
@@ -172,8 +209,13 @@ const MapScreen = () => {
     };
   }, [tracking, isPaused]);
 
-
-  const startLocationTracking = async () => {
+  /**
+   * Starts background GPS tracking and updates total distance covered.
+   * Ensures permissions are granted and background task is active.
+   * @async
+   * @return {Promise<void>}
+   */
+  const startLocationTracking = async (): Promise<void> => {
     try {
       startVisualTracking();
 
@@ -234,7 +276,12 @@ const MapScreen = () => {
     }
   };
 
-  const startVisualTracking = async () => {
+  /**
+   * Starts front-end map updates (with polylines) and centers the camera on movement.
+   * @async
+   * @return {Promise<void>}
+   */
+  const startVisualTracking = async (): Promise<void> => {
     try {
       const subscription = await Location.watchPositionAsync(
         {
@@ -264,6 +311,9 @@ const MapScreen = () => {
     }
   };
 
+  /**
+   * Stops active location tracking for distance calculation.
+   */
   const stopLocationTracking = () => {
     if (watchId.current) {
       watchId.current.remove();
@@ -271,7 +321,13 @@ const MapScreen = () => {
     }
   };
 
-  const stopAllTracking = async () => {
+  /**
+   * Halts both background and visual tracking activities safely,
+   * including location task cleanup.
+   * @async
+   * @return {Promise<void>}
+   */
+  const stopAllTracking = async (): Promise<void> => {
     stopLocationTracking();
     if (visualWatchId.current) {
       visualWatchId.current.remove();
@@ -290,6 +346,9 @@ const MapScreen = () => {
     }
   };
 
+  /**
+   * Recalculates current pace (minutes/km) whenever time or distance updates.
+   */
   useEffect(() => {
     if (elapsedTime > 0 && distance > 0) {
       const paceValue = (elapsedTime / 60) / (distance / 1000);
@@ -299,6 +358,10 @@ const MapScreen = () => {
     }
   }, [elapsedTime, distance]);
 
+  /**
+   * Announces each completed kilometer via voice if enabled and not paused.
+   * Avoids repeating announcements by caching completed kilometers.
+   */
   useEffect(() => {
     if (!voiceOn || !tracking || isPaused) return;
 
@@ -327,6 +390,9 @@ const MapScreen = () => {
     return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  /**
+   * Formats time and pace for display in hh:mm:ss and mm:ss respectively.
+   */
   const formatPace = (paceMinPerKm) => {
     if (!isFinite(paceMinPerKm) || paceMinPerKm <= 0) return "--:--";
 
@@ -335,7 +401,12 @@ const MapScreen = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const setCityForManualLogging = async () => {
+  /**
+   * Gets user's city from geolocation to attach it to manually logged sessions.
+   * @async
+   * @return {Promise<string|null>} Resolved city name or null if failed.
+   */
+  const setCityForManualLogging = async (): Promise<string | null> => {
     try {
       const initialPosition = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.BestForNavigation,
@@ -361,6 +432,10 @@ const MapScreen = () => {
     return null;
   };
 
+  /**
+   * Uses `requestAnimationFrame` to keep a smooth and accurate update of elapsed time,
+   * even across pause/resume cycles.
+   */
   useEffect(() => {
     let animationFrame;
 
@@ -384,8 +459,12 @@ const MapScreen = () => {
     };
   }, [tracking, isPaused, startTime]);
 
-
-  const handleManualLogPress = async () => {
+  /**
+   * Navigates the user to the manual logging screen with geolocation city data.
+   * @async
+   * @return {Promise<void>}
+   */
+  const handleManualLogPress = async (): Promise<void> => {
     const resolvedCity = await setCityForManualLogging();
 
     router.push({
@@ -397,7 +476,12 @@ const MapScreen = () => {
     });
   };
 
-  const resetVoiceTracking = async () => {
+  /**
+   * Clears spoken kilometer history and stops any ongoing speech.
+   * @async
+   * @return {Promise<void>}
+   */
+  const resetVoiceTracking = async (): Promise<void> => {
     spokenKilometers.current.clear();
     
     try {
@@ -410,7 +494,13 @@ const MapScreen = () => {
     }
   };
 
-  const startActivity = async () => {
+  /**
+   * Initializes all tracking states and resets voice and distance metrics.
+   * Also sets the city for the session summary screen.
+   * @async
+   * @return {Promise<void>}
+   */
+  const startActivity = async (): Promise<void> => {
     setElapsedTime(0);
     setDistance(0);
     setPace(0);
@@ -447,14 +537,26 @@ const MapScreen = () => {
     setTracking(true);
   };
 
-  const pauseActivity = () => {
+  /**
+   * Toggles tracking pause state. 
+   * Accumulates paused time to keep accurate elapsed time.
+   * @async
+   * @return {Promise<void>}
+   */
+  const pauseActivity = (): Promise<void> => {
     setIsPaused(true);
     pausedTime.current = Date.now();
     stopLocationTracking();
     console.log("Activity paused");
   };
 
-  const resumeActivity = async () => {
+  /**
+   * Resumes from last known location.
+   * Accumulates paused time to keep accurate elapsed time.
+   * @async
+   * @return {Promise<void>}
+   */
+  const resumeActivity = async (): Promise<void> => {
     try {
       const currentPosition = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.BestForNavigation
@@ -482,7 +584,13 @@ const MapScreen = () => {
     console.log("Activity resumed");
   };
 
-  const stopActivity = async () => {
+  /**
+   * Ends the session, stops all tracking, resets states,
+   * and navigates to the session summary with stats and route data.
+   * @async
+   * @return {Promise<void>}
+   */
+  const stopActivity = async (): Promise<void> => {
     const finalTime = elapsedTime;
     const finalDistance = distance;
     const finalPace = pace;

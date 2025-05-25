@@ -1,5 +1,11 @@
 /**
- * Displays a meal detail page allowing users to customize and save their meal.
+ * Displays a customizable meal detail screen where users can:
+ * - View meal and ingredient information.
+ * - Adjust included ingredients and quantities.
+ * - Calculate real-time macros based on selections.
+ * - Save customized meals to Firestore under their user profile.
+ * The screen supports both default and extra ingredients, and prevents saving unless at least one ingredient is selected.
+ * @module
  */
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
@@ -25,9 +31,13 @@ const screenWidth = Dimensions.get("window").width;
 const screenHeight = Dimensions.get("window").height;
 
 /**
- * Fetches and displays the meal detail page.
+ * Renders the meal customization screen with real-time nutritional totals.
+ * Pulls data from Firestore, enables ingredient-level selection and quantity adjustments,
+ * and saves customized meal entries to the user's Firestore record.
+ *
+ * @returns {React.JSX.Element} A fully interactive meal detail screen.
  */
-const MealDetail = () => {
+const MealDetail = (): React.JSX.Element => {
   const params = useLocalSearchParams();
   const id = typeof params.id === 'string' ? params.id : '';
   const type = typeof params.type === 'string' ? params.type : '';
@@ -94,7 +104,7 @@ const MealDetail = () => {
    * @param {string} id - Ingredient ID
    * @param {number} totalCount - Total occurrences in the meal
    */
-  const toggleAll = (id, totalCount) => {
+  const toggleAll = (id: string, totalCount: number) => {
     const currentCount = selectedIds.filter((i) => i === id).length;
 
     setSelectedIds((prev) => {
@@ -110,7 +120,7 @@ const MealDetail = () => {
    * Adds one occurrence of an ingredient.
    * @param {string} id - Ingredient ID
    */
-  const increment = (id) => {
+  const increment = (id: string) => {
     setSelectedIds((prev) => [...prev, id]);
   };
 
@@ -118,7 +128,7 @@ const MealDetail = () => {
    * Removes one occurrence of an ingredient.
    * @param {string} id - Ingredient ID
    */
-  const decrement = (id) => {
+  const decrement = (id: string) => {
     const idx = selectedIds.lastIndexOf(id);
     if (idx !== -1) {
       const copy = [...selectedIds]; 
@@ -132,14 +142,16 @@ const MealDetail = () => {
    * @param {string} macro - 'calorie' | 'carbs' | 'proteins' | 'fat'
    * @returns {number}
    */
-  const computeMacro = (macro) => {
+  const computeMacro = (macro: string): number => {
     return selectedIds.reduce((total, id) => total + (ingredients[id]?.[macro] || 0), 0);
   };
 
   /**
    * Saves the customized meal to Firestore.
+   * @async
+   * @returns {Promise<void>}
    */
-  const handleSave = async () => {    
+  const handleSave = async (): Promise<void> => {    
     if (selectedIds.length === 0) {
       setAlertTitle("Error");
       setAlertMessage("Please select at least one ingredient.");
@@ -332,7 +344,7 @@ const MealDetail = () => {
  * @param {string | number} value
  * @param {string} colorMacro
  * @param {string} colorValue
- * @returns {JSX.Element}
+ * @returns {React.JSX.Element}
  */
 const MacroBox = ({ label, value, colorMacro, colorValue }) => (
   <View style={styles.macroBoxContainer}>

@@ -1,7 +1,22 @@
+/**
+ * Stretching SVG Icon component.
+ * Renders a custom stretch-related icon using react-native-svg.
+ * Can be customized via props for size and color.
+ * @module
+ */
 import * as React from "react";
 import Svg, { Path } from "react-native-svg";
 
-const StretchingIcon = ({ size = 28, color, ...props }) => (
+/**
+ * Functional component rendering a stretching icon.
+ *
+ * @component
+ * @param {Object} props - Component props
+ * @param {number} [props.size=28] - Width and height of the icon
+ * @param {string} props.color - Stroke and fill color of the icon
+ * @returns {React.JSX.Element} Rendered SVG icon
+ */
+const StretchingIcon = ({ size = 28, color, ...props }: { size?: number; color: string; }): React.JSX.Element => (
   <Svg
     viewBox="0 0 1250 1250"
     width={size}

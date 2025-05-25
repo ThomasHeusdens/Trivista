@@ -3,7 +3,6 @@
  * Provides methods for user authentication and session management.
  * @module
  */
-
 import { 
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -21,6 +20,7 @@ import { auth } from './firebase-config';
 export interface FirebaseUserResponse {
   user: User;
 }
+
 /**
  * Retrieves the current authenticated user and their session
  * Utilizes Firebase's onAuthStateChanged to provide real-time auth state

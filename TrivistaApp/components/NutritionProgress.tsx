@@ -1,7 +1,8 @@
 /**
- * NutritionProgress.tsx
- *
  * Displays animated daily progress for calories and macronutrients.
+ * Pulls meal data for the current user and computes daily totals.
+ * Renders a donut chart for calories and animated bars for carbs, proteins, and fat.
+ * @module
  */
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
@@ -19,12 +20,17 @@ import Svg, { Circle } from "react-native-svg";
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /**
- * Displays the animated macro and calorie progress UI.
+ * NutritionProgress component
  *
- * @param {Object} data - User's daily nutrition targets (Calories, Carbs, Protein, Fat).
- * @returns {JSX.Element}
+ * Fetches and displays a user's daily nutritional intake compared to their goals.
+ * Provides animated visualization for calorie and macronutrient consumption.
+ *
+ * @component
+ * @param {Object} props - Component props
+ * @param {Object} props.data - Nutritional goal data containing Calories, Carbs, Protein, and Fat
+ * @returns {React.JSX.Element} Rendered nutritional progress UI
  */
-const NutritionProgress = ({ data }) => {
+const NutritionProgress = ({ data }: { data: object; }): React.JSX.Element => {
   const { user } = useSession();
   const [macrosTotal, setMacrosTotal] = useState({
     calorie: 0,
@@ -41,8 +47,8 @@ const NutritionProgress = ({ data }) => {
   };
 
   /**
-   * Fetches and totals ingredient macros from meals saved today.
-   * Updates local state with the current calorie and macro values.
+   * Fetches user meal data for the current UTC day,
+   * aggregates macronutrient totals from ingredient data.
    */
   useEffect(() => {
     const fetchMacros = async () => {
@@ -105,8 +111,7 @@ const NutritionProgress = ({ data }) => {
   }, [user]);
 
   /**
-   * Triggers animations when macro totals or goals change.
-   * Animates calorie donut and macro bar widths using Reanimated shared values.
+   * Updates animated calorie donut and macro bars based on fetched data.
    */
   useEffect(() => {
     const totalCalories = Math.round(data?.Calories || 1);
@@ -125,9 +130,6 @@ const NutritionProgress = ({ data }) => {
     updateMacro("fat", data?.Fat || 35, macrosTotal.fat);
   }, [macrosTotal, data]);
 
-  /**
-   * Animated props for the circular progress donut (calories).
-   */
   const animatedProps = useAnimatedProps(() => {
     const circleLength = 2 * Math.PI * 60;
     return {
@@ -162,7 +164,6 @@ const NutritionProgress = ({ data }) => {
     },
   ];
 
-  // Animated styles for each macro bar
   const animatedMacroStyles = {
     carbs: useAnimatedStyle(() => ({
       width: `${Math.min(macroWidths.carbs.value * 100, 100)}%`,
