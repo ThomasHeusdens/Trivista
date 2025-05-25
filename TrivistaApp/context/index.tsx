@@ -1,8 +1,7 @@
 /**
- * Authentication context module providing global auth state and methods.
+ * Provides a global authentication context with state and auth actions.
  * @module
  */
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged } from "firebase/auth";
 import {
@@ -13,30 +12,25 @@ import {
 } from "@/lib/firebase-service";
 import { auth } from "@/lib/firebase-config";
 
-// ============================================================================
-// Types & Interfaces
-// ============================================================================
-
 /**
- * Authentication context interface defining available methods and state
- * for managing user authentication throughout the application.
+ * Describes available authentication methods and user state.
  * @interface
  */
 interface AuthContextType {
   /**
-   * Authenticates an existing user with their credentials
-   * @param {string} email - User's email address
-   * @param {string} password - User's password
-   * @returns {Promise<User | undefined>} Authenticated user or undefined
+   * Sign in an existing user using email and password.
+   * @param email - The user's email address.
+   * @param password - The user's password.
+   * @returns A promise resolving to the signed-in user or undefined.
    */
   signIn: (email: string, password: string) => Promise<User | undefined>;
 
   /**
-   * Creates and authenticates a new user account
-   * @param {string} email - User's email address
-   * @param {string} password - User's password
-   * @param {string} [name] - Optional user's display name
-   * @returns {Promise<User | undefined>} Created user or undefined
+   * Register a new user with optional display name.
+   * @param email - The user's email.
+   * @param password - The user's password.
+   * @param name - Optional display name.
+   * @returns A promise resolving to the created user or undefined.
    */
   signUp: (
     email: string,
@@ -45,35 +39,24 @@ interface AuthContextType {
   ) => Promise<User | undefined>;
 
   /**
-   * Logs out the current user and clears session
-   * @returns {void}
+   * Logs out the current user.
    */
   signOut: () => void;
 
-  /** Currently authenticated user */
   user: User | null;
-  /** Loading state for authentication operations */
   isLoading: boolean;
 }
 
-// ============================================================================
-// Context Creation
-// ============================================================================
-
 /**
- * Authentication context instance
+ * Authentication context for managing auth globally.
  * @type {React.Context<AuthContextType>}
  */
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-// ============================================================================
-// Hook
-// ============================================================================
-
 /**
- * Custom hook to access authentication context
- * @returns {AuthContextType} Authentication context value
- * @throws {Error} If used outside of AuthProvider
+ * Hook to access the current authentication session.
+ * @returns The auth context with state and methods.
+ * @throws If used outside of <SessionProvider>.
  */
 export function useSession(): AuthContextType {
   const value = useContext(AuthContext);
@@ -87,40 +70,17 @@ export function useSession(): AuthContextType {
   return value;
 }
 
-// ============================================================================
-// Provider Component
-// ============================================================================
-
 /**
- * SessionProvider component that manages authentication state
- * @param {Object} props - Component props
- * @param {React.ReactNode} props.children - Child components
- * @returns {JSX.Element} Provider component
+ * Provides authentication context to child components.
+ * @param children - Components that will use the context.
+ * @returns Provider wrapping its children.
  */
 export function SessionProvider(props: { children: React.ReactNode }) {
-  // ============================================================================
-  // State & Hooks
-  // ============================================================================
-
-  /**
-   * Current authenticated user state
-   * @type {[User | null, React.Dispatch<React.SetStateAction<User | null>>]}
-   */
   const [user, setUser] = useState<User | null>(null);
-
-  /**
-   * Loading state for authentication operations
-   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
-   */
   const [isLoading, setIsLoading] = useState(true);
 
-  // ============================================================================
-  // Effects
-  // ============================================================================
-
   /**
-   * Sets up Firebase authentication state listener
-   * Automatically updates user state on auth changes
+   * Subscribes to Firebase auth changes and updates user state.
    */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -128,19 +88,14 @@ export function SessionProvider(props: { children: React.ReactNode }) {
       setIsLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
-  // ============================================================================
-  // Handlers
-  // ============================================================================
-
   /**
-   * Handles user sign-in process
-   * @param {string} email - User's email address
-   * @param {string} password - User's password
-   * @returns {Promise<User | undefined>} Authenticated user or undefined
+   * Signs in the user using Firebase.
+   * @param email - Email address.
+   * @param password - Password.
+   * @returns The signed-in user or undefined if failed.
    */
   const handleSignIn = async (email: string, password: string) => {
     try {
@@ -153,11 +108,11 @@ export function SessionProvider(props: { children: React.ReactNode }) {
   };
 
   /**
-   * Handles new user registration process
-   * @param {string} email - User's email address
-   * @param {string} password - User's password
-   * @param {string} [name] - Optional user's display name
-   * @returns {Promise<User | undefined>} Created user or undefined
+   * Registers a new user and optionally sets their name.
+   * @param email - Email address.
+   * @param password - Password.
+   * @param name - Optional display name.
+   * @returns The created user or undefined if failed.
    */
   const handleSignUp = async (
     email: string,
@@ -174,8 +129,7 @@ export function SessionProvider(props: { children: React.ReactNode }) {
   };
 
   /**
-   * Handles user sign-out process
-   * Clears local user state after successful logout
+   * Logs the user out and clears local state.
    */
   const handleSignOut = async () => {
     try {
@@ -185,10 +139,6 @@ export function SessionProvider(props: { children: React.ReactNode }) {
       console.error("[handleSignOut error] ==>", error);
     }
   };
-
-  // ============================================================================
-  // Render
-  // ============================================================================
 
   return (
     <AuthContext.Provider
