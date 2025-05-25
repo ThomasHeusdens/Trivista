@@ -2,7 +2,7 @@
  * This screen displays visual insights into the user's training progress,
  * including goal tracking, distance charts, best pace, and subjective effort analysis.
  * Training sessions are fetched from Firestore and charted using `react-native-chart-kit`.
- * * @module
+ * @module
  */
 import React, { useState, useEffect } from "react";
 import { 
@@ -55,8 +55,6 @@ const goalByType = {
   swim: 0.75
 };
 
-type TrainingType = 'run' | 'bike' | 'swim';
-
 /**
  * React component for displaying training analytics using line charts and statistics.
  * Users can filter data by activity type (run, bike, swim) and track performance
@@ -65,7 +63,7 @@ type TrainingType = 'run' | 'bike' | 'swim';
  * @returns {React.JSX.Element} Rendered progress tracking screen
  */
 const Progress = (): React.JSX.Element => {
-  const [selectedType, setSelectedType] = useState<TrainingType>("run");
+  const [selectedType, setSelectedType] = useState("run");
   const [typeModalVisible, setTypeModalVisible] = useState(false);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,8 +130,13 @@ const Progress = (): React.JSX.Element => {
    */
   const prepareChartData = () => {
     let filteredSessions = sessions;
+    
+    if (selectedType !== "all") {
+      filteredSessions = sessions.filter(session => session.type === selectedType);
+    }
 
     if (filteredSessions.length === 0) {
+      const goalDistance = goalByType[selectedType];
       goalProgress.value = withTiming(0, { duration: 800 }); 
       setChartData(null);
       return;
@@ -184,7 +187,7 @@ const Progress = (): React.JSX.Element => {
     const reverseFeelingLevels = ['Easy', 'Moderate', 'Hard', 'Max'];
 
     const avgFeelingNumeric = feelings
-      .map(f => feelingLevels[f as keyof typeof feelingLevels])
+      .map(f => feelingLevels[f])
       .filter(Boolean);
 
     const avgFeelingValue = avgFeelingNumeric.length > 0
@@ -256,7 +259,7 @@ const Progress = (): React.JSX.Element => {
     yAxisInterval: 1,
     fromZero: true,
     segments: 4,
-    formatYLabel: (value: string) => {
+    formatYLabel: (value) => {
       const numValue = parseFloat(value);
       if (selectedType === 'swim') {
         return numValue.toFixed(3);
