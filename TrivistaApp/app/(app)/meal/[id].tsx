@@ -161,13 +161,11 @@ const MealDetail = (): React.JSX.Element => {
 
     try { 
       setButtonLoading(true);
-      const docId = `${user.uid}_${type}`;
-      await setDoc(doc(db, "UserMeals", docId), {
+      await setDoc(doc(db, "users", user.uid, "meals", type), {
         ingredients: selectedIds,
         timestamp: new Date(),
         mealId: id,
         mealType: type,
-        userId: user.uid,
       });
       
       router.back();

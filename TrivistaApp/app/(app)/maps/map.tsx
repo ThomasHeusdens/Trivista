@@ -19,7 +19,7 @@ import { ArrowLeft, Info, Play, Pause, StopCircle, PencilLine, Volume2, VolumeX 
 import { useRouter } from "expo-router";
 import CustomAlert from "@/components/CustomAlert";
 import { useSession } from "@/context";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase-db";
 import * as geolib from 'geolib';
 import * as Speech from "expo-speech";
@@ -164,9 +164,10 @@ const MapScreen = (): React.JSX.Element => {
   useEffect(() => {
     const fetchTraining = async () => {
       try {
-        const docRef = doc(db, "UserStartDate", user.uid);
-        const snap = await getDoc(docRef);
-        if (!snap.exists()) return;
+        const colRef = doc(db, "users", user.uid, "startDate", user.displayName || "date");
+        const snap = await getDoc(colRef);
+        if (snap.empty) return;
+
         const { startDate: startStr } = snap.data();
         const [day, month, year] = startStr.split("-").map(Number);
         const start = new Date(Date.UTC(year, month - 1, day));

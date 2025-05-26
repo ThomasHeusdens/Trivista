@@ -141,13 +141,14 @@ export default function Onboarding2(): React.JSX.Element {
     const user = auth.currentUser;
     if (user) {
       try {
-        const userDocRef = doc(db, "UserNutrition", user.uid);
-        await setDoc(userDocRef, {
+        const docRef = doc(db, "users", user.uid, "nutrition", user.displayName || "nutrition");
+        await setDoc(docRef, {
           Calories: finalCalories,
           Protein: proteinGrams,
           Fat: fatGrams,
           Carbs: carbsGrams
         }, { merge: true });
+
       } catch (firestoreError) {
         setLoading(false);
         console.error("Firestore write error:", firestoreError);

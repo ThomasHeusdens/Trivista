@@ -72,9 +72,10 @@ const Train = (): React.JSX.Element => {
       try {
         const createdAt = new Date(user.metadata.creationTime);
         createdAt.setUTCHours(0, 0, 0, 0);
-        const docRef = doc(db, "UserStartDate", user.uid);
-        const snap = await getDoc(docRef);
-        if (!snap.exists()) return;
+        const colRef = doc(db, "users", user.uid, "startDate", user.displayName || "date");
+        const snap = await getDoc(colRef);
+        if (snap.empty) return;
+        
         const { startDate: startStr } = snap.data();
         const [day, month, year] = startStr.split("-").map(Number);
         const start = new Date(Date.UTC(year, month - 1, day));

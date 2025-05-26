@@ -33,7 +33,7 @@ export default function Onboarding1(): React.JSX.Element {
           source={require("@/assets/images/bicycle.jpg")}
           className="rounded-2xl mb-5"
           style={{ width: "100%", height: 300 }}
-          resizeMode="contain"
+          resizeMode="cover"
         />
         <View className="flex-row mb-5 py-2 px-2 w-[30%] justify-between items-center">
           <View className="bg-[#FACC15] w-[30px] h-[10px] rounded-[5px]"></View>

@@ -95,6 +95,17 @@ const SessionLogging = (): React.JSX.Element => {
       return;
     }
 
+    const hh = parseInt(rawTime.slice(0, 2), 10);
+    const mm = parseInt(rawTime.slice(2, 4), 10);
+    const ss = parseInt(rawTime.slice(4, 6), 10);
+
+    if (hh >= 60 || mm >= 60 || ss >= 60) {
+      setAlertTitle("Invalid Time Value");
+      setAlertMessage("Hours, minutes, and seconds must each be less than 60.");
+      setAlertVisible(true);
+      return;
+    }
+
     if (!nameOfSession.trim()) {
       setAlertTitle("Missing Fields");
       setAlertMessage("Please give your training session a name.");
@@ -119,6 +130,13 @@ const SessionLogging = (): React.JSX.Element => {
     if (!distanceOfSession.trim()) {
       setAlertTitle("Missing Distance");
       setAlertMessage("Please enter the distance for your session.");
+      setAlertVisible(true);
+      return;
+    }
+
+    if (distanceOfSession.includes(",")) {
+      setAlertTitle("Invalid Distance Format");
+      setAlertMessage("Use a dot (.) instead of a comma (,) for decimal values. E.g., write 10.5, not 10,5.");
       setAlertVisible(true);
       return;
     }

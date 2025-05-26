@@ -47,16 +47,15 @@ const NutritionProgress = ({ data }: { data: object; }): React.JSX.Element => {
   };
 
   /**
-   * Fetches user meal data for the current UTC day,
-   * aggregates macronutrient totals from ingredient data.
+   * Fetches user meal data for the current UTC day, aggregates macronutrient totals from ingredient data.
    */
   useEffect(() => {
     const fetchMacros = async () => {
       try {
         if (!user) return;
 
-        const q = query(collection(db, "UserMeals"), where("userId", "==", user.uid));
-        const snap = await getDocs(q);
+        const colRef = collection(db, "users", user.uid, "meals");
+        const snap = await getDocs(colRef);
 
         const todayUTC = new Date();
         const todayYear = todayUTC.getUTCFullYear();

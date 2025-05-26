@@ -95,8 +95,10 @@ export default function Onboarding3(): React.JSX.Element {
         .split("/")
         .join("-");
 
-      const docRef = doc(db, "UserStartDate", user.uid);
-      await setDoc(docRef, { startDate: formattedDate });
+      await setDoc(
+        doc(db, "users", user.uid, "startDate", user.displayName || "date"),
+        { startDate: formattedDate }
+      );
 
       router.push("/onboarding/page4");
     } catch (error) {

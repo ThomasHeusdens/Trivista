@@ -133,8 +133,7 @@ const Stretch = (): React.JSX.Element => {
     if (!user) return;
     
     try {
-      const stretchingDocId = `${user.uid}_${selectedType}`;
-      const stretchingDoc = await getDoc(doc(db, "UserFinishedStretching", stretchingDocId));
+      const stretchingDoc = await getDoc(doc(db, "users", user.uid, "finishedStretching", selectedType));
       
       if (stretchingDoc.exists()) {
         const data = stretchingDoc.data();
@@ -161,12 +160,11 @@ const Stretch = (): React.JSX.Element => {
     if (!user) return;
     
     try {
-      const stretchingDocId = `${user.uid}_${selectedType}`;
-      await setDoc(doc(db, "UserFinishedStretching", stretchingDocId), {
+      await setDoc(doc(db, "users", user.uid, "finishedStretching", selectedType), {
         done: true,
         timestamp: Timestamp.now()
       });
-      
+
       setStretchingCompleted(true);
     } catch (error) {
       console.error("Error saving stretching completion:", error);
@@ -183,9 +181,10 @@ const Stretch = (): React.JSX.Element => {
      */
     const fetchData = async (): Promise<void> => {
       if (!user) return;
-      const snap = await getDoc(doc(db, "UserStartDate", user.uid));
-      if (!snap.exists()) return;
-
+      const colRef = doc(db, "users", user.uid, "startDate", user.displayName || "date");
+      const snap = await getDoc(colRef);
+      if (snap.empty) return;
+      
       const { startDate: startStr } = snap.data();
       const [day, month, year] = startStr.split("-").map(Number);
       const start = new Date(Date.UTC(year, month - 1, day));

@@ -59,7 +59,8 @@ const Eat = (): React.JSX.Element => {
    */
   const fetchNutrition = async (): Promise<void> => {
     try {
-      const ref = doc(db, "UserNutrition", uid);
+      if (!user) return;
+      const ref = doc(db, "users", uid!, "nutrition", (user.displayName ? user.displayName : "nutrition"));
       const snap = await getDoc(ref);
       if (snap.exists()) {
         setNutrition(snap.data());
@@ -70,6 +71,7 @@ const Eat = (): React.JSX.Element => {
       setNutritionLoaded(true);
     }
   };
+
 
   /**
    * Fetches all available meals from Firestore and saves them to local state.
@@ -113,10 +115,14 @@ const Eat = (): React.JSX.Element => {
    *
    * @returns {Promise<void>}
    */
-  const fetchSavedMeals = async () => {
+  const fetchSavedMeals = async (): Promise<void> => {
+    if (!uid) {
+      setSavedMealsLoaded(true);
+      return;
+    }
     try {
-      const q = query(collection(db, "UserMeals"), where("userId", "==", uid));
-      const snap = await getDocs(q);
+      const colRef = collection(db, "users", uid, "meals");
+      const snap = await getDocs(colRef);
       const result = {};
 
       const todayUTC = new Date();
