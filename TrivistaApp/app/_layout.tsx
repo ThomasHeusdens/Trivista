@@ -1,8 +1,7 @@
 /**
- * Root Layout
- *
  * This file wraps the entire app with shared global providers and styles.
  * It sets up authentication context, gesture handling, font loading, and global layout configuration.
+ * @module _root-layout
  */
 import { SessionProvider } from "@/context";
 import { Slot, SplashScreen } from "expo-router";
@@ -19,9 +18,9 @@ import "../global.css";
  * Entry layout component for the app. Loads custom fonts, initializes auth context,
  * sets up gesture support, and displays child routes.
  *
- * @returns {JSX.Element} Wrapped application layout
+ * @returns {React.JSX.Element} Wrapped application layout
  */
-export default function Root() {
+export default function Root():  React.JSX.Element {
   const [fontsLoaded] = useFonts({
     Bison: require("@/assets/fonts/bison.ttf"),
     InterBold: require("@/assets/fonts/Inter_24pt-Bold.ttf"),

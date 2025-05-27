@@ -1,8 +1,8 @@
 /**
  * SignIn screen for user authentication.
  * Allows users to input their email and password, and authenticate via Firebase Auth.
- *
- * @returns {JSX.Element} The rendered sign-in form UI.
+ * Displays inline validation errors and success routing, with animated feedback.
+ * @module
  */
 import {
   ImageBackground,
@@ -25,9 +25,9 @@ import CustomAlert from "@/components/CustomAlert";
 /**
  * SignIn renders the sign-in screen with email and password input fields.
  *
- * @returns {JSX.Element} The complete sign-in UI.
+ * @returns {React.JSX.Element} The complete sign-in UI.
  */
-export default function SignIn() {
+export default function SignIn():  React.JSX.Element {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,15 +43,15 @@ export default function SignIn() {
    * @param {string} email - The email to validate.
    * @returns {boolean}
    */
-  const isValidEmail = (email: string) =>
+  const isValidEmail = (email: string): boolean =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   /**
    * Attempts to log in the user with validation and error handling.
-   *
+   * @async
    * @returns {Promise<void>}
    */
-  const handleSignInPress = async () => {
+  const handleSignInPress = async (): Promise<void> => {
     if (!email || !password) {
       setAlertTitle("Missing Fields");
       setAlertMessage("Please fill in all the fields.");
@@ -77,7 +77,7 @@ export default function SignIn() {
       setLoading(true);
       const resp = await signIn(email, password);
       if (resp) {
-        router.replace("/(app)/");
+        router.replace("/(app)");
       } else {
         setLoading(false);
         setAlertTitle("Login Failed");

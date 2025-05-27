@@ -1,7 +1,8 @@
 /**
- * Recover.tsx
- * Displays personalized recovery tips based on the user's registration day.
- * Tips are grouped by type (hydration, sleep, stretching, general) and link to external resources.
+ * Displays daily recovery tips based on the number of days since user registration.
+ * Fetches tips from Firestore for the first 91 days, and randomly selects cached tips beyond that.
+ * Tips are categorized (hydration, sleep, stretching, general) and include external resource links.
+ * @module
  */
 import React, { useEffect, useState } from "react";
 import {
@@ -29,13 +30,12 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
- * Recover screen
  * Calculates the current day since account creation and displays daily tips
  * pulled from Firestore. Tips are rendered by category and link to external resources.
  *
- * @returns {JSX.Element} React Native screen with recovery tips UI.
+ * @returns {React.JSX.Element} React Native screen with recovery tips UI.
  */
-const Recover = () => {
+const Recover = (): React.JSX.Element => {
   const { user } = useSession();
   const router = useRouter();
   const screenHeight = Dimensions.get("window").height;
@@ -80,7 +80,6 @@ const Recover = () => {
 
       const todayKey = `dailyTips_${currentDay}`;
 
-      // If currentDay <= 91 → normal flow
       if (currentDay <= 91) {
         try {
           const q = query(collection(db, "Recovery"), where("day", "==", currentDay));
@@ -95,7 +94,6 @@ const Recover = () => {
         return;
       }
 
-      // If currentDay > 91 → try to load from cache
       try {
         const cached = await AsyncStorage.getItem(todayKey);
         if (cached) {
@@ -104,7 +102,6 @@ const Recover = () => {
           return;
         }
 
-        // No cache found → pick new random tips
         const snapshot = await getDocs(collection(db, "Recovery"));
         const allTips = snapshot.docs.map((doc) => doc.data());
 
@@ -114,7 +111,7 @@ const Recover = () => {
             const matching = allTips.filter((tip) => tip.type.toLowerCase() === type);
             return getRandomElement(matching);
           })
-          .filter(Boolean); // remove undefined if any category had no data
+          .filter(Boolean);
 
         setTips(randomTips);
         await AsyncStorage.setItem(todayKey, JSON.stringify(randomTips));
@@ -142,7 +139,7 @@ const Recover = () => {
    * @param {string} type - The type of tip (e.g., "hydration", "sleep").
    * @returns {object|undefined} Tip object matching the type or undefined if not found.
    */
-  const getTipByType = (type) =>
+  const getTipByType = (type: string): object | undefined =>
     tips.find((tip) => tip.type.toLowerCase() === type.toLowerCase());
 
   const hydration = getTipByType("hydration");
@@ -191,81 +188,96 @@ const Recover = () => {
           Important tips
         </Text>
 
-        {/* Tip Grid: Two rows of two columns */}
         <View className="flex-column justify-between mb-4">
-          <View className="flex-row justify-between mb-4">
+          <View className="flex-row justify-between mb-4 gap-4">
             {hydration && (
               <Pressable
-                className="bg-white/30 rounded-[10px] p-4 flex-1 mr-2"
+                className="bg-white/30 rounded-[10px] p-4 flex-1"
                 onPress={() => hydration.source && Linking.openURL(hydration.source)}
               >
-                <View className="flex-row mb-2">
-                  <GlassWater size={18} color="#FACC15" />
-                  <Text className="text-yellow-400 font-[InterBold] text-base ml-2">Hydration</Text>
-                </View>
-                <Text className="text-white text-sm font-[InterRegular] mb-4">
-                  {hydration.tip}
-                </Text>
-                <View className="flex-row justify-between">
-                  <Text className="text-[#B4B4B4] text-sm font-[InterRegular] mr-1">Read more</Text>
-                  <Text className="text-[#B4B4B4] text-base font-bold">›</Text>
+                <View className="flex-1 justify-between">
+                  <View>
+                    <View className="flex-row mb-2">
+                      <GlassWater size={18} color="#FACC15" />
+                      <Text className="text-yellow-400 font-[InterBold] text-base ml-2">Hydration</Text>
+                    </View>
+                    <Text className="text-white text-sm font-[InterRegular] mb-4">
+                      {hydration.tip}
+                    </Text>
+                  </View>
+                  <View className="flex-row justify-between">
+                    <Text className="text-[#B4B4B4] text-sm font-[InterRegular] mr-1">Read more</Text>
+                    <Text className="text-[#B4B4B4] text-base font-bold">›</Text>
+                  </View>
                 </View>
               </Pressable>
             )}
             {sleep && (
               <Pressable
-                className="bg-white/30 rounded-[10px] p-4 flex-1 ml-2"
+                className="bg-white/30 rounded-[10px] p-4 flex-1"
                 onPress={() => sleep.source && Linking.openURL(sleep.source)}
               >
-                <View className="flex-row mb-2">
-                  <BedDouble size={18} color="#FACC15" />
-                  <Text className="text-yellow-400 font-[InterBold] text-base ml-2">Sleep</Text>
-                </View>
-                <Text className="text-white text-sm font-[InterRegular] mb-4">
-                  {sleep.tip}
-                </Text>
-                <View className="flex-row justify-between">
-                  <Text className="text-[#B4B4B4] text-sm font-[InterRegular] mr-1">Read more</Text>
-                  <Text className="text-[#B4B4B4] text-base font-bold">›</Text>
+                <View className="flex-1 justify-between">
+                  <View>
+                    <View className="flex-row mb-2">
+                      <BedDouble size={18} color="#FACC15" />
+                      <Text className="text-yellow-400 font-[InterBold] text-base ml-2">Sleep</Text>
+                    </View>
+                    <Text className="text-white text-sm font-[InterRegular] mb-4">
+                      {sleep.tip}
+                    </Text>
+                  </View>
+                  <View className="flex-row justify-between">
+                    <Text className="text-[#B4B4B4] text-sm font-[InterRegular] mr-1">Read more</Text>
+                    <Text className="text-[#B4B4B4] text-base font-bold">›</Text>
+                  </View>
                 </View>
               </Pressable>
             )}
           </View>
 
-          <View className="flex-row justify-between mb-4">
+          <View className="flex-row justify-between mb-4 gap-4">
             {stretching && (
               <Pressable
-                className="bg-white/30 rounded-[10px] p-4 flex-1 mr-2"
+                className="bg-white/30 rounded-[10px] p-4 flex-1"
                 onPress={() => stretching.source && Linking.openURL(stretching.source)}
               >
-                <View className="flex-row mb-2">
-                  <StretchHorizontal size={18} color="#FACC15" />
-                  <Text className="text-yellow-400 font-[InterBold] text-base ml-2">Stretching</Text>
-                </View>
-                <Text className="text-white text-sm font-[InterRegular] mb-4">
-                  {stretching.tip}
-                </Text>
-                <View className="flex-row flex-row justify-between">
-                  <Text className="text-[#B4B4B4] text-sm font-[InterRegular] mr-1">Read more</Text>
-                  <Text className="text-[#B4B4B4] text-base font-bold">›</Text>
+                <View className="flex-1 justify-between">
+                  <View>
+                    <View className="flex-row mb-2">
+                      <StretchingIcon size={18} color="#FACC15" />
+                      <Text className="text-yellow-400 font-[InterBold] text-base ml-2">Stretching</Text>
+                    </View>
+                    <Text className="text-white text-sm font-[InterRegular] mb-4">
+                      {stretching.tip}
+                    </Text>
+                  </View>
+                  <View className="flex-row justify-between">
+                    <Text className="text-[#B4B4B4] text-sm font-[InterRegular] mr-1">Read more</Text>
+                    <Text className="text-[#B4B4B4] text-base font-bold">›</Text>
+                  </View>
                 </View>
               </Pressable>
             )}
             {general && (
               <Pressable
-                className="bg-white/30 rounded-[10px] p-4 flex-1 ml-2"
+                className="bg-white/30 rounded-[10px] p-4 flex-1"
                 onPress={() => general.source && Linking.openURL(general.source)}
               >
-                <View className="flex-row mb-2">
-                  <Brain size={18} color="#FACC15" />
-                  <Text className="text-yellow-400 font-[InterBold] text-base ml-2">General</Text>
-                </View>
-                <Text className="text-white text-sm font-[InterRegular] mb-4">
-                  {general.tip}
-                </Text>
-                <View className="flex-row justify-between">
-                  <Text className="text-[#B4B4B4] text-sm font-[InterRegular] mr-1">Read more</Text>
-                  <Text className="text-[#B4B4B4] text-base font-bold">›</Text>
+                <View className="flex-1 justify-between">
+                  <View>
+                    <View className="flex-row mb-2">
+                      <Brain size={18} color="#FACC15" />
+                      <Text className="text-yellow-400 font-[InterBold] text-base ml-2">General</Text>
+                    </View>
+                    <Text className="text-white text-sm font-[InterRegular] mb-4">
+                      {general.tip}
+                    </Text>
+                  </View>
+                  <View className="flex-row justify-between">
+                    <Text className="text-[#B4B4B4] text-sm font-[InterRegular] mr-1">Read more</Text>
+                    <Text className="text-[#B4B4B4] text-base font-bold">›</Text>
+                  </View>
                 </View>
               </Pressable>
             )}

@@ -1,3 +1,9 @@
+/**
+ * Main training screen that displays today's workout (or recovery if completed),
+ * tracks progress through a 12-week triathlon program, and renders daily or post-program videos.
+ * Handles week navigation, training data display, and conditional states (before start, in progress, after completion).
+ * @module
+ */
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
 import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore";
@@ -27,7 +33,14 @@ import CustomTrainAlert from "@/components/CustomTrainingAlert";
 import CustomAlert from "@/components/CustomAlert";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const Train = () => {
+/**
+ * Core component of the training tab. Calculates which day the user is on,
+ * loads appropriate training data from Firestore, and shows training metrics
+ * and video guidance. Also displays progress across the 12-week program.
+ *
+ * @returns {React.JSX.Element} The UI for the training screen.
+ */
+const Train = (): React.JSX.Element => {
   const { user } = useSession();
   const [appDay, setAppDay] = useState(0);
   const [trainingDay, setTrainingDay] = useState(null);
@@ -48,15 +61,21 @@ const Train = () => {
 
   const progress = useSharedValue(0);
 
+  /**
+   * Calculates which day of the 84-day training program the user is on,
+   * and sets current week, appDay, and training progress.
+   * Also updates the progress bar value using Reanimated.
+   */
   useEffect(() => {
     const fetchTrainingDay = async () => {
       if (!user) return;
       try {
         const createdAt = new Date(user.metadata.creationTime);
         createdAt.setUTCHours(0, 0, 0, 0);
-        const docRef = doc(db, "UserStartDate", user.uid);
-        const snap = await getDoc(docRef);
-        if (!snap.exists()) return;
+        const colRef = doc(db, "users", user.uid, "startDate", user.displayName || "date");
+        const snap = await getDoc(colRef);
+        if (snap.empty) return;
+        
         const { startDate: startStr } = snap.data();
         const [day, month, year] = startStr.split("-").map(Number);
         const start = new Date(Date.UTC(year, month - 1, day));
@@ -65,10 +84,9 @@ const Train = () => {
         today.setUTCHours(0, 0, 0, 0);
         const diff = Math.floor((today - start) / (1000 * 60 * 60 * 24));
         
-        // Check if we've completed the training program (85+ days)
         if (diff >= 84) {
           setIsTrainingCompleted(true);
-          setTrainingDay(85); // Setting to day 85 to indicate completion
+          setTrainingDay(85); 
           setSelectedDay(85);
         } else if (diff < 0) {
           setTrainingDay(null);
@@ -78,7 +96,6 @@ const Train = () => {
           setCurrentWeek(Math.floor(diff / 7));
         }
         
-        // Calculate training end day
         const trainingEndDate = new Date(start);
         trainingEndDate.setUTCDate(trainingEndDate.getUTCDate() + 84);
         const daysUntilTrainingEnds = Math.floor(
@@ -86,13 +103,11 @@ const Train = () => {
         );
         setTrainingEndDay(daysUntilTrainingEnds);
         
-        // Calculate app days and update progress here - AFTER we have trainingEndDay
         const daysSinceCreation = Math.floor(
           (today - createdAt) / (1000 * 60 * 60 * 24)
         ) + 1;
         setAppDay(daysSinceCreation);
         
-        // Handle progress bar animation - Now we're sure trainingEndDay is calculated
         if (daysSinceCreation >= daysUntilTrainingEnds) {
           progress.value = withTiming(1, { duration: 800 });
         } else {
@@ -106,6 +121,9 @@ const Train = () => {
     fetchTrainingDay();
   }, [user]);
 
+  /**
+   * Fetches all training sessions from Firestore and sets the current day’s data.
+   */
   useEffect(() => {
     const fetchTraining = async () => {
       try {
@@ -123,6 +141,9 @@ const Train = () => {
     fetchTraining();
   }, [trainingDay]);
 
+  /**
+   * When user taps a different day in the week selector, update the training view accordingly.
+   */
   useEffect(() => {
     if (selectedDay && selectedDay <= 84 && allTrainings.length > 0) {
       const selected = allTrainings.find((t) => t.day === selectedDay);
@@ -130,6 +151,10 @@ const Train = () => {
     }
   }, [selectedDay, allTrainings]);
 
+  /**
+   * Loads daily training videos and random fallback videos.
+   * If user has completed the program, fetches a new random daily video from storage.
+   */
   useEffect(() => {
     const fetchVideos = async () => {
       try {
@@ -142,7 +167,6 @@ const Train = () => {
         const randomVideosData = randomSnap.docs.map((doc) => doc.data());
         setRandomVideos(randomVideosData);
         
-        // Handle post-completion random video using AsyncStorage
         if (isTrainingCompleted) {
           await fetchOrCreateDailyRandomVideo(trainingVideosData);
         }
@@ -153,34 +177,33 @@ const Train = () => {
     fetchVideos();
   }, [isTrainingCompleted]);
 
-  // Function to fetch stored video or create a new one for the day
-  const fetchOrCreateDailyRandomVideo = async (trainingVideosArray) => {
+  /**
+   * Either retrieves a stored video for the day from AsyncStorage or randomly picks one.
+   * Stores the selection so the same video is shown all day.
+   *
+   * @param {Array} trainingVideosArray - All available training videos.
+   */
+  const fetchOrCreateDailyRandomVideo = async (trainingVideosArray: Array<any>) => {
     if (!trainingVideosArray || trainingVideosArray.length === 0) return;
     
     try {
-      // Create a date key in the format YYYY-MM-DD
       const today = new Date();
       const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const storageKey = `postTrainingVideo_${dateKey}`;
       
-      // Try to get stored video for today
       const storedVideo = await AsyncStorage.getItem(storageKey);
       
       if (storedVideo) {
-        // If we have a stored video for today, use it
         setRandomTrainingVideo(JSON.parse(storedVideo));
       } else {
-        // If no stored video for today, select a random one and store it
         const randomIndex = Math.floor(Math.random() * trainingVideosArray.length);
         const selectedVideo = trainingVideosArray[randomIndex];
         setRandomTrainingVideo(selectedVideo);
         
-        // Store the selected video for today
         await AsyncStorage.setItem(storageKey, JSON.stringify(selectedVideo));
       }
     } catch (err) {
       console.error("Error handling daily random video:", err);
-      // Fallback to random selection if AsyncStorage fails
       const randomIndex = Math.floor(Math.random() * trainingVideosArray.length);
       setRandomTrainingVideo(trainingVideosArray[randomIndex]);
     }
@@ -190,10 +213,17 @@ const Train = () => {
     width: `${Math.min(progress.value * 100, 100)}%`,
   }));
 
-  const renderVideo = () => {
+  /**
+   * Determines which video to display:
+   * - If before training: show rotating random videos.
+   * - If completed: show post-program maintenance video.
+   * - If in training: show the video assigned to the selected training day.
+   *
+   * @returns {React.JSX.Element|null}
+   */
+  const renderVideo = (): React.JSX.Element | null => {
     if (!user) return null;
 
-    // Case 1: Before training start date
     if (trainingDay === null) {
       const createdAt = new Date(user.metadata.creationTime);
       const today = new Date();
@@ -208,7 +238,6 @@ const Train = () => {
         </View>
       ) : null;
     } 
-    // Case 2: After training completion (day 85+)
     else if (isTrainingCompleted && randomTrainingVideo) {
       return (
         <View style={{ height: 200, marginTop: 12, borderRadius: 12, overflow: "hidden" }}>
@@ -216,7 +245,6 @@ const Train = () => {
         </View>
       );
     } 
-    // Case 3: During normal training (days 1-84)
     else {
       const video = trainingVideos.find((v) => v.day === selectedDay);
       return video ? (
@@ -227,7 +255,13 @@ const Train = () => {
     }
   };
 
-  const renderWeekDays = () => {
+  /**
+   * Renders the 7-day week navigator for selecting training days.
+   * Disabled once training is completed.
+   *
+   * @returns {React.JSX.Element|null}
+   */
+  const renderWeekDays = (): React.JSX.Element | null => {
     if (!startDate || trainingDay === null) return null;
     
     // Don't show week selector after training completion
@@ -311,8 +345,12 @@ const Train = () => {
     );
   };
 
-  // Render post-training completion content
-  const renderCompletedTraining = () => {
+  /**
+   * Renders a congratulatory message and post-program tips after completing the 84-day training cycle.
+   *
+   * @returns {React.JSX.Element}
+   */
+  const renderCompletedTraining = (): React.JSX.Element => {
     return (
       <View>
         <View style={styles.congratsContainer}>

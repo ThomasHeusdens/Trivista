@@ -1,7 +1,7 @@
 /**
- * Onboarding Step 4
- *
- * Final onboarding screen explaining the app’s mission and marking onboarding as complete.
+ * Final step in the onboarding flow.
+ * Explains the app’s mission and marks the onboarding process as complete by updating the user's Firebase profile.
+ * @module
  */
 import { Text, TouchableOpacity, ImageBackground, View, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
@@ -10,21 +10,19 @@ import { updateProfile } from "firebase/auth";
 import { useState } from "react";
 
 /**
- * Onboarding4()
- *
  * Renders the final onboarding explanation and completes the user’s onboarding state.
  *
- * @returns {JSX.Element} Step 4 onboarding screen
+ * @returns {React.JSX.Element} Step 4 onboarding screen
  */
-export default function Onboarding4() {
+export default function Onboarding4(): React.JSX.Element {
   const [loading, setLoading] = useState(false);
 
   /**
    * Marks onboarding as complete by updating the user's photoURL in Firebase Auth.
-   *
+   * @async
    * @returns {Promise<void>}
    */
-  const finishOnboarding = async () => {
+  const finishOnboarding = async (): Promise<void> => {
     setLoading(true);
     const user = auth.currentUser;
     if (user) {

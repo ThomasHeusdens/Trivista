@@ -1,3 +1,11 @@
+/**
+ * Displays a scrollable list of the user's training sessions, filtered by type (run, bike, swim).
+ * Each session includes stats (time, distance, pace), a map preview (if GPS data is available),
+ * and contextual metadata like city, date, and user-reported feeling.
+ *
+ * Sessions are fetched from Firestore and displayed using dynamic layout components.
+ * @component
+ */
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -18,21 +26,41 @@ import { db } from "@/lib/firebase-db";
 import { getAuth } from "firebase/auth";
 import { Picker } from "@react-native-picker/picker";
 
-const formatTime = (seconds) => {
+/**
+ * Formats a time value (in seconds) into a `hh:mm:ss` string.
+ *
+ * @param {number} seconds - Total seconds to format.
+ * @returns {string} Formatted time string.
+ */
+const formatTime = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
   return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
-const formatPace = (paceMinPerKm) => {
+/**
+ * Converts a decimal pace value (min/km) into a `mm:ss` string.
+ *
+ * @param {number} paceMinPerKm - Pace in minutes per kilometer.
+ * @returns {string} Formatted pace string.
+ */
+const formatPace = (paceMinPerKm: number): string => {
   if (!isFinite(paceMinPerKm) || paceMinPerKm <= 0) return "--:--";
   const mins = Math.floor(paceMinPerKm);
   const secs = Math.floor((paceMinPerKm - mins) * 60);
   return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
-const Sessions = () => {
+/**
+ * Sessions
+ *
+ * React component that renders a list of past training sessions with optional filtering.
+ * Shows map previews for GPS-enabled sessions and allows platform-specific session filtering via modal or picker.
+ *
+ * @returns {React.JSX.Element} Rendered Sessions screen.
+ */
+const Sessions = (): React.JSX.Element => {
   const [sessions, setSessions] = useState([]);
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [selectedType, setSelectedType] = useState("all");
@@ -49,7 +77,21 @@ const Sessions = () => {
     { label: "Swim", value: "swim" },
   ];
 
-  const calculateCoordinateData = (points) => {
+  /**
+   * Calculates the center point and zoom level to fit all given coordinates.
+   *
+   * @param {Array<{ latitude: number, longitude: number }>} points - Array of GPS coordinates.
+   * @returns {{
+   *   midLat: number,
+   *   midLng: number,
+   *   zoomLevel: number
+   * }} Map viewport data.
+   */
+  const calculateCoordinateData = (points: Array<{ latitude: number; longitude: number; }>): {
+    midLat: number;
+    midLng: number;
+    zoomLevel: number;
+  } => {
     if (!points || points.length === 0) {
       return {
         midLat: 0,
@@ -91,6 +133,13 @@ const Sessions = () => {
     };
   };
 
+  /**
+   * Fetches training sessions for the current user from Firestore,
+   * calculates coordinate metadata for GPS-enabled sessions,
+   * and populates session-related state for rendering and filtering.
+   *
+   * Runs once on mount.
+   */
   useEffect(() => {
     const fetchSessions = async () => {
       try {

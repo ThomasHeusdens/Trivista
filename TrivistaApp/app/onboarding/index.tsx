@@ -1,20 +1,19 @@
 /**
- * Onboarding Step 1
- *
- * Introduction screen that explains the purpose of the onboarding flow
- * and prepares the user to provide personal data.
+ * Step 1 in the onboarding flow.
+ * Introduces the user to the purpose of onboarding and explains the need for personal data collection.
+ * Serves as the entry point to the onboarding process.
+ * @module
  */
 import { Text, TouchableOpacity, ImageBackground, View, Image } from "react-native";
 import { router } from "expo-router";
 
 /**
- * Onboarding1()
+ * Displays a welcome screen introducing the onboarding process.
+ * Includes instructional text, an illustrative image, and a "Next" button to continue.
  *
- * Displays the first onboarding page with introductory text and a "Next" button.
- *
- * @returns {JSX.Element} First onboarding screen
+ * @returns {React.JSX.Element} First onboarding screen
  */
-export default function Onboarding1() {
+export default function Onboarding1(): React.JSX.Element {
 
   return (
     <ImageBackground
@@ -34,7 +33,7 @@ export default function Onboarding1() {
           source={require("@/assets/images/bicycle.jpg")}
           className="rounded-2xl mb-5"
           style={{ width: "100%", height: 300 }}
-          resizeMode="fit"
+          resizeMode="cover"
         />
         <View className="flex-row mb-5 py-2 px-2 w-[30%] justify-between items-center">
           <View className="bg-[#FACC15] w-[30px] h-[10px] rounded-[5px]"></View>

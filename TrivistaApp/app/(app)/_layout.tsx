@@ -1,23 +1,22 @@
 /**
- * App Layout
- *
- * This layout handles authentication and onboarding logic for all routes within the (app) group.
- * - Redirects unauthenticated users to sign-in.
- * - Redirects users who haven't completed onboarding to the onboarding flow.
- * - Renders child routes for authenticated and onboarded users.
+ * Layout wrapper for all routes in the (app) group.
+ * Applies authentication and onboarding guards:
+ * - Redirects unauthenticated users to the sign-in screen
+ * - Redirects users with incomplete onboarding to the onboarding flow
+ * - Renders nested routes for authenticated and onboarded users
+ * @module
  */
 import { View, ActivityIndicator } from "react-native";
 import { Redirect, Slot } from "expo-router";
 import { useSession } from "@/context";
 
 /**
- * AppLayout()
+ * Conditionally renders protected routes based on session status.
+ * Handles redirects for unauthenticated users and users who haven't completed onboarding.
  *
- * Determines the user's access to protected routes based on auth and onboarding status.
- *
- * @returns {JSX.Element} Redirect or layout content
+ * @returns {React.JSX.Element} Redirect or layout content
  */
-export default function AppLayout() {
+export default function AppLayout(): React.JSX.Element {
   const { user, isLoading } = useSession();
 
   if (isLoading) {

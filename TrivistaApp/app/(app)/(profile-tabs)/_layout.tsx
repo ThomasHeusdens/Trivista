@@ -3,6 +3,7 @@
  *
  * Displays the secondary tab navigation for the user's profile section,
  * with custom top/bottom navigation and logout support.
+ * @module
  */
 import { Tabs, router } from "expo-router";
 import { TouchableOpacity, Text } from "react-native";
@@ -21,21 +22,20 @@ import {
  * Renders a custom profile tab navigator with the user's name, a close button,
  * and a logout icon, along with three profile-related screens.
  *
- * @returns {JSX.Element} Profile tab navigation UI
+ * @returns {React.JSX.Element} Profile tab navigation UI
  */
 export default function ProfileTabLayout() {
   const { signOut, user } = useSession();
   const displayName = user?.displayName || "User";
 
   /**
-   * handleLogout()
+   * Signs the user out using the session context's `signOut` method
+   * and redirects them to the sign-in screen by replacing the navigation stack.
    *
-   * Logs the user out and redirects to the sign-in screen.
-   *
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} A promise that resolves when sign-out and navigation are complete.
    */
-  const handleLogout = async () => {
-    await signOut();
+  const handleLogout = async (): Promise<void> => {
+    signOut();
     router.replace("/sign-in");
   };
 

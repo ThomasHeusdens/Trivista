@@ -1,3 +1,12 @@
+/**
+ * Allows users to manually log a training session including:
+ * - Session type (run, bike, swim)
+ * - Name, time, distance, and perceived effort ("feeling")
+ * - Optional location (pre-populated via query param)
+ * Data is validated before saving to Firestore under the current user’s `trainingSessions` collection.
+ * iOS and Android handle type/feeling selection differently using native pickers or modal overlays.
+ * @module
+ */
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Platform, Modal, FlatList, TextInput, Keyboard, TouchableWithoutFeedback } from "react-native";
 import React, { useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -8,7 +17,14 @@ import { getAuth } from "firebase/auth";
 import CustomAlert from "@/components/CustomAlert";
 import { Trash2, Info } from "lucide-react-native";
 
-const SessionLogging = () => {
+/**
+ * Renders a form for users to manually record a workout session.
+ * Provides fields for session name, type, effort level, time, and distance.
+ * Data is submitted to Firestore after validation.
+ *
+ * @returns {React.JSX.Element} 
+ */
+const SessionLogging = (): React.JSX.Element => {
   const { type, city } = useLocalSearchParams();
   const [selectedType, setSelectedType] = useState(type || "");
   const [typeModalVisible, setTypeModalVisible] = useState(false);
@@ -37,7 +53,13 @@ const SessionLogging = () => {
     { label: "Max Effort", value: "Max" },
   ];
 
-  const handleTimeInput = (text) => {
+  /**
+   * Handles time input and formatting from user.
+   * Automatically inserts colons for HH:MM:SS format as the user types.
+   *
+   * @param {string} text - Raw input string.
+   */
+  const handleTimeInput = (text: string) => {
     const digits = text.replace(/\D/g, "");
 
     const limited = digits.slice(0, 6);
@@ -56,11 +78,30 @@ const SessionLogging = () => {
     setTimeOfSession(formatted);
   };
 
-  const handleSave = async () => {
+  /**
+   * Validates and saves the session data to Firestore.
+   * Computes total time in seconds and training pace.
+   * Displays error alerts if required fields are missing.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
+  const handleSave = async (): Promise<void> => {
 
     if (rawTime.length !== 6) {
       setAlertTitle("Invalid Time");
       setAlertMessage("Please enter the full time in HHMMSS format.");
+      setAlertVisible(true);
+      return;
+    }
+
+    const hh = parseInt(rawTime.slice(0, 2), 10);
+    const mm = parseInt(rawTime.slice(2, 4), 10);
+    const ss = parseInt(rawTime.slice(4, 6), 10);
+
+    if (hh >= 60 || mm >= 60 || ss >= 60) {
+      setAlertTitle("Invalid Time Value");
+      setAlertMessage("Hours, minutes, and seconds must each be less than 60.");
       setAlertVisible(true);
       return;
     }
@@ -89,6 +130,13 @@ const SessionLogging = () => {
     if (!distanceOfSession.trim()) {
       setAlertTitle("Missing Distance");
       setAlertMessage("Please enter the distance for your session.");
+      setAlertVisible(true);
+      return;
+    }
+
+    if (distanceOfSession.includes(",")) {
+      setAlertTitle("Invalid Distance Format");
+      setAlertMessage("Use a dot (.) instead of a comma (,) for decimal values. E.g., write 10.5, not 10,5.");
       setAlertVisible(true);
       return;
     }
