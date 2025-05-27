@@ -18,6 +18,8 @@ export default {
         googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY_IOS,
       },
       infoPlist: {
+        NSLocationAlwaysAndWhenInUseUsageDescription: "App needs background location access for tracking training sessions.",
+        NSLocationWhenInUseUsageDescription: "App uses your location to track your training.",
         UIBackgroundModes: ["location"],
       },
     },

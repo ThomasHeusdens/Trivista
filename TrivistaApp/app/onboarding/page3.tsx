@@ -1,7 +1,8 @@
 /**
- * Onboarding Step 3
- *
- * Allows users to select their training start date and saves it to Firestore.
+ * Step 3 in the onboarding flow.
+ * Allows users to select a training start date and saves the selection to Firestore.
+ * Provides platform-specific date selection UI and inline validation with alert feedback.
+ * @module
  */
 import {
   Text,
@@ -25,13 +26,13 @@ import { auth } from "@/lib/firebase-config";
 import CustomAlert from "@/components/CustomAlert";
 
 /**
- * Onboarding3()
+ * Displays a start date picker for users to begin their training.
+ * Validates the selected date and saves it to Firestore under the user's ID.
+ * Includes platform-specific UI handling and animated transitions to the next onboarding step.
  *
- * Renders the start date selection screen with a dynamic picker.
- *
- * @returns {JSX.Element} Step 3 onboarding screen
+ * @returns {React.JSX.Element} Step 3 onboarding screen
  */
-export default function Onboarding3() {
+export default function Onboarding3(): React.JSX.Element {
   const [startDate, setStartDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -45,7 +46,7 @@ export default function Onboarding3() {
    *
    * @returns {Array<{ label: string, value: string }>}.
    */
-  const getNext7Days = () => {
+  const getNext7Days = (): Array<{ label: string; value: string; }> => {
     const days = [];
     const options: Intl.DateTimeFormatOptions = {
       weekday: "long",
@@ -70,10 +71,10 @@ export default function Onboarding3() {
 
   /**
    * Validates the selected date, formats it, and stores it in Firestore.
-   *
+   * @async
    * @returns {Promise<void>}
    */
-  const handleContinue = async () => {
+  const handleContinue = async (): Promise<void> => {
     if (!startDate) {
       setAlertTitle("Missing Selection");
       setAlertMessage("Please select a start date.");
@@ -94,8 +95,10 @@ export default function Onboarding3() {
         .split("/")
         .join("-");
 
-      const docRef = doc(db, "UserStartDate", user.uid);
-      await setDoc(docRef, { startDate: formattedDate });
+      await setDoc(
+        doc(db, "users", user.uid, "startDate", user.displayName || "date"),
+        { startDate: formattedDate }
+      );
 
       router.push("/onboarding/page4");
     } catch (error) {

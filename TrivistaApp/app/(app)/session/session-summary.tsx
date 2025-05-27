@@ -1,5 +1,15 @@
+/**
+ * Displays a summary of a recently completed session (run, bike, swim) tracked by GPS.
+ * Allows the user to:
+ * - See session stats: time, distance, pace
+ * - Review the route on a map
+ * - Select session type and perceived effort
+ * - Name and save the session to Firestore
+ * Handles platform-specific UI for selecting type and effort (Picker for Android, Modal for iOS).
+ * @component
+ */
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Platform, Modal, FlatList, TextInput } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MapView, { Polyline } from "react-native-maps";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
@@ -7,20 +17,32 @@ import { db } from "@/lib/firebase-db";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import CustomAlert from "@/components/CustomAlert";
-import { Trash2, Info } from "lucide-react-native";
+import { Trash2 } from "lucide-react-native";
 
-const SessionSummary = () => {
+/**
+ * Collects additional details for a recently tracked session and saves them to Firestore.
+ * Uses props from navigation (via `useLocalSearchParams`) for time, distance, pace, route, etc.
+ *
+ * @returns {React.JSX.Element}
+ */
+const SessionSummary = (): React.JSX.Element => {
   const { time, distance, pace, coords, type, city } = useLocalSearchParams();
   const [selectedType, setSelectedType] = useState(type || "");
   const [typeModalVisible, setTypeModalVisible] = useState(false);
   const [nameOfSession, setNameOfSession] = useState("");
   const [feeling, setFeeling] = useState("");
   const [feelingModalVisible, setFeelingModalVisible] = useState(false);
-  const parsedCoords = JSON.parse(coords || "[]");
+  const parsedCoords = useMemo(() => JSON.parse(coords || "[]"), [coords]);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
   const router = useRouter();
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 0,
+    longitude: 0,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  });
 
   const typeOptions = [
     { label: "Run", value: "run" },
@@ -35,7 +57,34 @@ const SessionSummary = () => {
     { label: "Max Effort", value: "Max" },
   ];
 
-  const handleSave = async () => {
+  /**
+   * When the route coordinates (`parsedCoords`) change,
+   * compute the map region to center the view on the route with an appropriate zoom level.
+   *
+   * This ensures the Polyline (session path) is fully visible in the MapView.
+   */
+  useEffect(() => {
+    if (parsedCoords && parsedCoords.length > 0) {
+      const mapData = calculateCoordinateData(parsedCoords);
+      setMapRegion({
+        latitude: mapData.midLat,
+        longitude: mapData.midLng,
+        latitudeDelta: mapData.zoomLevel,
+        longitudeDelta: mapData.zoomLevel,
+      });
+    }
+  }, [coords]);
+
+  /**
+   * Validates form fields and saves the session to Firestore.
+   *
+   * Fields saved include: userId, name, type, feeling, time, distance, pace, route, and city.
+   * Alerts user if any required field is missing.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
+  const handleSave = async (): Promise<void> => {
     if (!nameOfSession.trim()) {
       setAlertTitle("Missing Fields");
       setAlertMessage("Please give your training session a name.");
@@ -83,6 +132,62 @@ const SessionSummary = () => {
     } catch (err) {
       console.error("Failed to save session:", err);
     }
+  };
+
+  /**
+   * Calculates center and zoom level for displaying route on the map.
+   *
+   * @param {Array} points - Array of coordinate objects (latitude, longitude)
+   * @returns {{
+   *   midLat: number,
+   *   midLng: number,
+   *   zoomLevel: number
+   * }}
+   */
+  const calculateCoordinateData = (points: Array<any>): {
+    midLat: number;
+    midLng: number;
+    zoomLevel: number;
+  } => {
+    if (!points || points.length === 0) {
+      return {
+        midLat: 0,
+        midLng: 0,
+        zoomLevel: 0.05, 
+      };
+    }
+
+    let minLat = points[0].latitude;
+    let maxLat = points[0].latitude;
+    let minLng = points[0].longitude;
+    let maxLng = points[0].longitude;
+
+    points.forEach(({ latitude, longitude }) => {
+      minLat = Math.min(minLat, latitude);
+      maxLat = Math.max(maxLat, latitude);
+      minLng = Math.min(minLng, longitude);
+      maxLng = Math.max(maxLng, longitude);
+    });
+
+    const midLat = (minLat + maxLat) / 2;
+    const midLng = (minLng + maxLng) / 2;
+
+    const latDelta = (maxLat - minLat);
+    const lngDelta = (maxLng - minLng);
+    
+    const paddingFactor = 0.003;
+    const minDelta = 0.003; 
+    
+    const zoomLevel = Math.max(
+      Math.max(latDelta * (1 + paddingFactor), lngDelta * (1 + paddingFactor)),
+      minDelta
+    );
+    
+    return {
+      midLat,
+      midLng,
+      zoomLevel,
+    };
   };
 
   return (
@@ -223,12 +328,7 @@ const SessionSummary = () => {
       <View style={styles.mapContainer}>
         <MapView
           style={styles.innerMap}
-          region={{
-            latitude: parsedCoords[0]?.latitude || 0,
-            longitude: parsedCoords[0]?.longitude || 0,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
+          region={mapRegion}
           scrollEnabled={false}
           zoomEnabled={false}
         >
@@ -237,17 +337,17 @@ const SessionSummary = () => {
       </View>
 
       <View style={styles.stats}>
-        <View className="flex-column w-[35%]">
+        <View className="flex-column w-[40%]">
           <Text style={styles.statTitle}>Time</Text>
           <Text style={styles.stat}>{formatTime(Number(time))}</Text>
           <Text style={styles.statBottom}>hh:mm:ss</Text>
         </View>
-        <View className="flex-column w-[30%]">
+        <View className="flex-column w-[25%]">
           <Text style={styles.statTitle}>Distance</Text>
           <Text style={styles.stat}>{(Number(distance) / 1000).toFixed(2)}</Text>
           <Text style={styles.statBottom}>km</Text>
         </View>
-        <View className="flex-column w-[30%]">
+        <View className="flex-column w-[28%]">
           <Text style={styles.statTitle}>Pace</Text>
           <Text style={styles.stat}>{formatPace(Number(pace))}</Text>
           <Text style={styles.statBottom}>min/km</Text>

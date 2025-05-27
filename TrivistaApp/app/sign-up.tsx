@@ -1,8 +1,8 @@
 /**
- * SignUp screen for user registration.
- * Allows users to input their name, email, and password, and register via Firebase Auth.
- *
- * @returns {JSX.Element} The rendered sign-up form UI.
+ * Registration screen component.
+ * Allows users to input their name, email, and password to create an account via Firebase Authentication.
+ * Displays inline validation errors and success routing, with animated feedback.
+ * @module
  */
 import {
   ImageBackground,
@@ -26,9 +26,9 @@ import CustomAlert from "@/components/CustomAlert";
 /**
  * Renders the registration screen UI with inputs for name, email, and password.
  *
- * @returns {JSX.Element} A styled sign-up screen with registration logic.
+ * @returns {React.JSX.Element} A styled sign-up screen with registration logic.
  */
-export default function SignUp() {
+export default function SignUp():  React.JSX.Element {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [repeatEmail, setRepeatEmail] = useState("");
@@ -46,15 +46,15 @@ export default function SignUp() {
    * @param {string} email - Email input.
    * @returns {boolean}
    */
-  const isValidEmail = (email: string) =>
+  const isValidEmail = (email: string): boolean =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   /**
    * Handles user registration with validation and Firebase sign-up.
-   *
+   * @async
    * @returns {Promise<void>}
    */
-  const handleSignUpPress = async () => {
+  const handleSignUpPress = async (): Promise<void> => {
     if (!name || !email || !repeatEmail || !password) {
       setAlertTitle("Missing Fields");
       setAlertMessage("Please fill in all the fields.");
@@ -87,7 +87,7 @@ export default function SignUp() {
       setLoading(true);
       const resp = await signUp(email, password, name);
       if (resp) {
-        router.replace("/(app)/");
+        router.replace("/(app)");
       } else {
         setLoading(false);
         setAlertTitle("Email In Use");
@@ -115,9 +115,14 @@ export default function SignUp() {
           className="justify-center items-center"
         >
           <Text className="text-white text-3xl mb-2 font-[InterBold]">Welcome on Trivista!</Text>
-          <Text className="text-white text-base mb-9 font-[InterRegular]">
+          <Text className="text-white text-base mb-4 font-[InterRegular]">
             Train for your first sprint triathlon in just 12 weeks.
           </Text>
+          <Image
+            source={require("@/assets/images/triathlon-logo.png")}
+            className="w-[100%] h-[40px] mb-4"
+            resizeMode="contain"
+          />
           <Image
             source={require("@/assets/images/logo.png")}
             className="w-36 h-36 mb-9"
@@ -219,11 +224,6 @@ export default function SignUp() {
         title={alertTitle}
         message={alertMessage}
         onClose={() => setAlertVisible(false)}
-      />
-      <Image
-        source={require("@/assets/images/triathlon-logo.png")}
-        className="w-[100%] h-[40px] top-[50px] absolute"
-        resizeMode="contain"
       />
     </KeyboardAvoidingView>
   );

@@ -1,3 +1,15 @@
+/**
+ * Stretching screen that delivers guided pre- and post-workout routines with a built-in timer, progress bar,
+ * and video player. Includes support for tracking daily completion, resuming paused sessions, and streaming
+ * tailored YouTube content based on the user's training day.
+ * 
+ * Core features:
+ * - Fetches daily training type based on user start date
+ * - Loads appropriate stretching exercises and videos
+ * - Tracks stretching completion per day and type
+ * - Includes interactive countdown timers with animation
+ * @module
+*/
 import React, { useEffect, useState, useRef } from "react";
 import {
   View,
@@ -35,7 +47,14 @@ import {
 } from "firebase/firestore";
 import { WebView } from "react-native-webview";
 
-const Stretch = () => {
+/**
+ * Main screen for pre/post-training stretches. Displays exercise steps, embedded YouTube videos, 
+ * and a session timer with pause/resume functionality. Once completed, stretches are marked in Firestore.
+ *
+ * @returns {React.JSX.Element} Full interactive stretching routine screen
+ */
+
+const Stretch = (): React.JSX.Element => {
   const { user } = useSession();
   const screenHeight = Dimensions.get("window").height;
   const screenWidth = Dimensions.get("window").width;
@@ -72,14 +91,27 @@ const Stretch = () => {
   const globalTimerRef = useRef(null);
   const scrollViewRef = useRef(null);
 
-  const loadBeep = async () => {
+  /**
+   * Plays a beep sound when an exercise ends.
+   * Used as audio feedback for transitions.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
+  const loadBeep = async (): Promise<void> => {
     const { sound } = await Audio.Sound.createAsync(
       require("@/assets/sound/beep.mp3")
     );
     await sound.playAsync();
   };
 
-  const isToday = (timestamp) => {
+  /**
+   * Compares a Firestore timestamp with the current date (UTC normalized).
+   *
+   * @param {object} timestamp - Firestore timestamp with a toDate() method.
+   * @returns {boolean} Whether the timestamp is today (UTC).
+   */
+  const isToday = (timestamp: { toDate: () => any; }): boolean => {
     if (!timestamp) return false;
     
     const today = new Date();
@@ -91,12 +123,17 @@ const Stretch = () => {
     return today.getTime() === date.getTime();
   };
 
-  const checkStretchingCompletion = async () => {
+  /**
+   * Checks Firestore to see if the user has already completed today's stretching (pre/post).
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
+  const checkStretchingCompletion = async (): Promise<void> => {
     if (!user) return;
     
     try {
-      const stretchingDocId = `${user.uid}_${selectedType}`;
-      const stretchingDoc = await getDoc(doc(db, "UserFinishedStretching", stretchingDocId));
+      const stretchingDoc = await getDoc(doc(db, "users", user.uid, "finishedStretching", selectedType));
       
       if (stretchingDoc.exists()) {
         const data = stretchingDoc.data();
@@ -113,16 +150,21 @@ const Stretch = () => {
     }
   };
 
-  const saveStretchingCompletion = async () => {
+  /**
+   * Saves stretching completion for the current user and type into Firestore with a timestamp.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
+  const saveStretchingCompletion = async (): Promise<void> => {
     if (!user) return;
     
     try {
-      const stretchingDocId = `${user.uid}_${selectedType}`;
-      await setDoc(doc(db, "UserFinishedStretching", stretchingDocId), {
+      await setDoc(doc(db, "users", user.uid, "finishedStretching", selectedType), {
         done: true,
         timestamp: Timestamp.now()
       });
-      
+
       setStretchingCompleted(true);
     } catch (error) {
       console.error("Error saving stretching completion:", error);
@@ -130,11 +172,19 @@ const Stretch = () => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
+    /**
+     * Retrieves user's start date and calculates the training day.
+     * Determines the training type for the day from Firestore data.
+     *
+     * @async
+     * @returns {Promise<void>}
+     */
+    const fetchData = async (): Promise<void> => {
       if (!user) return;
-      const snap = await getDoc(doc(db, "UserStartDate", user.uid));
-      if (!snap.exists()) return;
-
+      const colRef = doc(db, "users", user.uid, "startDate", user.displayName || "date");
+      const snap = await getDoc(colRef);
+      if (snap.empty) return;
+      
       const { startDate: startStr } = snap.data();
       const [day, month, year] = startStr.split("-").map(Number);
       const start = new Date(Date.UTC(year, month - 1, day));
@@ -154,7 +204,13 @@ const Stretch = () => {
       setDataLoaded(true);
     };
 
-    const fetchStretchings = async () => {
+    /**
+     * Loads all stretching exercises from Firestore and updates local state.
+     *
+     * @async
+     * @returns {Promise<void>}
+     */
+    const fetchStretchings = async (): Promise<void> => {
       try {
         const snap = await getDocs(collection(db, "Stretching"));
         const all = snap.docs.map((doc) => doc.data());
@@ -166,8 +222,14 @@ const Stretch = () => {
       }
     };
 
-
-    const fetchVideos = async () => {
+    /**
+     * Loads daily and random training videos from Firestore.
+     * Determines which video to show based on training day or fallback logic.
+     *
+     * @async
+     * @returns {Promise<void>}
+     */
+    const fetchVideos = async (): Promise<void> => {
       try {
         const trainingSnap = await getDocs(collection(db, "TrainingVideos"));
         const randomSnap = await getDocs(query(collection(db, "RandomVideos"), orderBy("iframe")));
@@ -202,37 +264,58 @@ const Stretch = () => {
     fetchStretchings();
   }, [user]);
 
+  /**
+   * Waits for all data (stretchings, videos, and user training info) to be loaded before
+   * turning off the loading screen.
+   */
   useEffect(() => {
     if (stretchingsLoaded && videosLoaded && dataLoaded) {
       setLoading(false);
     }
   }, [stretchingsLoaded, videosLoaded, dataLoaded]);
 
+  /**
+   * Checks if the current stretching session (pre/post) has already been completed today.
+   */
   useEffect(() => {
     checkStretchingCompletion();
   }, [user, selectedType]);
 
+  /**
+   * Resets the list of completed exercises when switching type or starting a new timer.
+   */
   useEffect(() => {
     setCompletedExercises([]);
   }, [selectedType, timerActive]);
 
+  /**
+   * Filters all stretchings for the current day’s training type and selected stretching type.
+   */
   const filtered = stretchings.filter(
     (s) => s.training === trainingType && s.type === selectedType
   );
 
+  /**
+   * Excludes completed exercises from the display, except for the one currently active.
+   */
   const displayedExercises = filtered.filter((_, index) => 
     !completedExercises.includes(index) || index === currentExerciseIndex
   );
 
+  /**
+   * Calculates total session duration in seconds for progress tracking.
+   */
   const totalSessionDuration = filtered.reduce((sum, s) => sum + s.duration, 0);
+
+  /**
+   * Gets the currently active exercise object by index.
+   */
   const currentExercise = filtered[currentExerciseIndex];
 
-  useEffect(() => {
-    if (scrollViewRef.current && timerActive) {
-      scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: true });
-    }
-  }, [currentExerciseIndex, timerActive]);
-
+  /**
+   * Manages global session timer (overall countdown) and sets total time left.
+   * Stops when paused or timer ends.
+   */
   useEffect(() => {
     if (timerActive && !paused) {
       if (pausedTotalTimeLeft === 0) {
@@ -248,6 +331,11 @@ const Stretch = () => {
     return () => clearInterval(globalTimerRef.current);
   }, [timerActive, paused]);
 
+  /**
+   * Manages countdown and animation for each individual exercise.
+   * Plays a beep and vibrates on completion, then proceeds to the next exercise
+   * or ends the session and saves progress.
+   */
   useEffect(() => {
     if (!timerActive || paused || !currentExercise) return;
 
@@ -305,6 +393,10 @@ const Stretch = () => {
     return () => clearInterval(intervalRef.current);
   }, [timerActive, paused, currentExerciseIndex]);
 
+  /**
+   * If paused, saves the current time, total time, and progress bar state.
+   * Also cancels ongoing animations and timers.
+   */
   useEffect(() => {
     if (paused) {
       setPausedTimeLeft(timeLeft);
@@ -323,10 +415,17 @@ const Stretch = () => {
     backgroundColor: "#FACC15",
   }));
 
+  /**
+   * Toggles the timer between paused and running.
+   */
   const handlePauseResume = () => {
     setPaused(!paused);
   };
 
+  /**
+   * Resets the timer, progress, and current state to initial values.
+   * Cancels any ongoing animation or intervals.
+   */
   const handleStop = () => {
     setPaused(false);
     setTimerActive(false);
@@ -347,7 +446,6 @@ const Stretch = () => {
       </View>
     );
   }
-
 
   return (
     <>

@@ -1,7 +1,7 @@
 /**
- * Onboarding Step 4
- *
- * Final onboarding screen explaining the app’s mission and marking onboarding as complete.
+ * Final step in the onboarding flow.
+ * Explains the app’s mission and marks the onboarding process as complete by updating the user's Firebase profile.
+ * @module
  */
 import { Text, TouchableOpacity, ImageBackground, View, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
@@ -10,21 +10,19 @@ import { updateProfile } from "firebase/auth";
 import { useState } from "react";
 
 /**
- * Onboarding4()
- *
  * Renders the final onboarding explanation and completes the user’s onboarding state.
  *
- * @returns {JSX.Element} Step 4 onboarding screen
+ * @returns {React.JSX.Element} Step 4 onboarding screen
  */
-export default function Onboarding4() {
+export default function Onboarding4(): React.JSX.Element {
   const [loading, setLoading] = useState(false);
 
   /**
    * Marks onboarding as complete by updating the user's photoURL in Firebase Auth.
-   *
+   * @async
    * @returns {Promise<void>}
    */
-  const finishOnboarding = async () => {
+  const finishOnboarding = async (): Promise<void> => {
     setLoading(true);
     const user = auth.currentUser;
     if (user) {
@@ -50,9 +48,9 @@ export default function Onboarding4() {
           Why Trivista?
         </Text>
         <Text className="text-white text-base font-[InterRegular] mb-5 text-center">
-          Training for a triathlon can feel overwhelming — it’s not just about swimming, biking, and running, but also stretching, eating right, and recovering well.{"\n\n"}
-          That’s where Trivista comes in. We simplify your journey by guiding you through everything: from daily tips to smart nutrition and recovery habits.{"\n\n"}
-          Over the next 12 weeks, you'll get personalized insights and tools to train smarter, track your meals, and stay consistent — without overthinking it.{"\n\n"}
+          Training for a triathlon can feel overwhelming — especially if you're starting from zero. But you don’t need to be an expert, or have hours a day to train.{"\n\n"}
+          Trivista is built to help you complete your first sprint triathlon in just 12 weeks. We guide you through every step: smart daily nutrition, focused training, effective stretching, and science-backed recovery — all in one intuitive app.{"\n\n"}
+          With personalized insights and routines designed for beginners, you'll build confidence, stay consistent, and make steady progress — without overthinking the process.{"\n\n"}
           You train — we take care of the rest.
         </Text>
 

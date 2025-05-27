@@ -1,3 +1,11 @@
+/**
+ * Displays a scrollable list of the user's training sessions, filtered by type (run, bike, swim).
+ * Each session includes stats (time, distance, pace), a map preview (if GPS data is available),
+ * and contextual metadata like city, date, and user-reported feeling.
+ *
+ * Sessions are fetched from Firestore and displayed using dynamic layout components.
+ * @component
+ */
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -18,27 +26,49 @@ import { db } from "@/lib/firebase-db";
 import { getAuth } from "firebase/auth";
 import { Picker } from "@react-native-picker/picker";
 
-const formatTime = (seconds) => {
+/**
+ * Formats a time value (in seconds) into a `hh:mm:ss` string.
+ *
+ * @param {number} seconds - Total seconds to format.
+ * @returns {string} Formatted time string.
+ */
+const formatTime = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
   return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
-const formatPace = (paceMinPerKm) => {
+/**
+ * Converts a decimal pace value (min/km) into a `mm:ss` string.
+ *
+ * @param {number} paceMinPerKm - Pace in minutes per kilometer.
+ * @returns {string} Formatted pace string.
+ */
+const formatPace = (paceMinPerKm: number): string => {
   if (!isFinite(paceMinPerKm) || paceMinPerKm <= 0) return "--:--";
   const mins = Math.floor(paceMinPerKm);
   const secs = Math.floor((paceMinPerKm - mins) * 60);
   return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
-const Sessions = () => {
+/**
+ * Sessions
+ *
+ * React component that renders a list of past training sessions with optional filtering.
+ * Shows map previews for GPS-enabled sessions and allows platform-specific session filtering via modal or picker.
+ *
+ * @returns {React.JSX.Element} Rendered Sessions screen.
+ */
+const Sessions = (): React.JSX.Element => {
   const [sessions, setSessions] = useState([]);
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [selectedType, setSelectedType] = useState("all");
   const [typeModalVisible, setTypeModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
+  
+  const [sessionCoordData, setSessionCoordData] = useState({});
 
   const typeOptions = [
     { label: "All Sessions", value: "all" },
@@ -47,6 +77,69 @@ const Sessions = () => {
     { label: "Swim", value: "swim" },
   ];
 
+  /**
+   * Calculates the center point and zoom level to fit all given coordinates.
+   *
+   * @param {Array<{ latitude: number, longitude: number }>} points - Array of GPS coordinates.
+   * @returns {{
+   *   midLat: number,
+   *   midLng: number,
+   *   zoomLevel: number
+   * }} Map viewport data.
+   */
+  const calculateCoordinateData = (points: Array<{ latitude: number; longitude: number; }>): {
+    midLat: number;
+    midLng: number;
+    zoomLevel: number;
+  } => {
+    if (!points || points.length === 0) {
+      return {
+        midLat: 0,
+        midLng: 0,
+        zoomLevel: 0.05, 
+      };
+    }
+
+    let minLat = points[0].latitude;
+    let maxLat = points[0].latitude;
+    let minLng = points[0].longitude;
+    let maxLng = points[0].longitude;
+
+    points.forEach(({ latitude, longitude }) => {
+      minLat = Math.min(minLat, latitude);
+      maxLat = Math.max(maxLat, latitude);
+      minLng = Math.min(minLng, longitude);
+      maxLng = Math.max(maxLng, longitude);
+    });
+
+    const midLat = (minLat + maxLat) / 2;
+    const midLng = (minLng + maxLng) / 2;
+
+    const latDelta = (maxLat - minLat);
+    const lngDelta = (maxLng - minLng);
+    
+    const paddingFactor = 0.003;
+    const minDelta = 0.003; 
+    
+    const zoomLevel = Math.max(
+      Math.max(latDelta * (1 + paddingFactor), lngDelta * (1 + paddingFactor)),
+      minDelta
+    );
+    
+    return {
+      midLat,
+      midLng,
+      zoomLevel,
+    };
+  };
+
+  /**
+   * Fetches training sessions for the current user from Firestore,
+   * calculates coordinate metadata for GPS-enabled sessions,
+   * and populates session-related state for rendering and filtering.
+   *
+   * Runs once on mount.
+   */
   useEffect(() => {
     const fetchSessions = async () => {
       try {
@@ -59,8 +152,17 @@ const Sessions = () => {
         );
         const snapshot = await getDocs(q);
         const data = snapshot.docs.map((doc) => doc.data());
+        
+        const coordData = {};
+        data.forEach((session, index) => {
+          if (session.coords && session.coords.length > 0) {
+            coordData[index] = calculateCoordinateData(session.coords);
+          }
+        });
+        
+        setSessionCoordData(coordData);
         setSessions(data);
-        setFilteredSessions(data); 
+        setFilteredSessions(data);
       } catch (error) {
         console.error("Failed to fetch sessions:", error);
       } finally {
@@ -162,67 +264,71 @@ const Sessions = () => {
         </Modal>
 
         {filteredSessions.length > 0 ? (
-          filteredSessions.map((session, idx) => (
-            <View key={idx} style={styles.sessionBox}>
-              <View style={styles.headerRow}>
-                <Text style={styles.typeText}>
-                  {typeIcon[session.type]}
-                </Text>
-                <Text style={styles.cityText}>
-                  {session.city}, {new Date(session.createdAt).toLocaleString()}
-                </Text>
-                <Text style={styles.feelingText}>{session.feeling}</Text>
-              </View>
-              <Text style={styles.sessionName}>{session.name}</Text>
-              <View style={{ 
-                width: mapWidth, 
-                height: 200, 
-                borderRadius: 10, 
-                overflow: 'hidden',
-                marginBottom: 10,
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
-              }}>
-                {session.coords && session.coords.length > 0 ? (
-                  <MapView
-                    style={{ width: '100%', height: '100%' }}
-                    region={{
-                      latitude: session.coords[0].latitude,
-                      longitude: session.coords[0].longitude,
-                      latitudeDelta: 0.01,
-                      longitudeDelta: 0.01,
-                    }}
-                    scrollEnabled={false}
-                    zoomEnabled={false}
-                  >
-                    <Polyline coordinates={session.coords} strokeWidth={4} strokeColor="#FACC15" />
-                  </MapView>
-                ) : (
-                  <Text style={{ color: "#ccc", fontFamily: "InterRegular", padding: 20, textAlign: "center" }}>
-                    No GPS data available. This session was manually logged.
+          filteredSessions.map((session, idx) => {
+            const sessionData = sessionCoordData[sessions.indexOf(session)];
+            
+            return (
+              <View key={idx} style={styles.sessionBox}>
+                <View style={styles.headerRow}>
+                  <Text style={styles.typeText}>
+                    {typeIcon[session.type]}
                   </Text>
-                )}
+                  <Text style={styles.cityText}>
+                    {session.city}, {new Date(session.createdAt).toLocaleString()}
+                  </Text>
+                  <Text style={styles.feelingText}>{session.feeling}</Text>
+                </View>
+                <Text style={styles.sessionName}>{session.name}</Text>
+                <View style={{ 
+                  width: mapWidth, 
+                  height: 200, 
+                  borderRadius: 10, 
+                  overflow: 'hidden',
+                  marginBottom: 10,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  backgroundColor: "rgba(255, 255, 255, 0.05)",
+                }}>
+                  {session.coords && session.coords.length > 0 && sessionData ? (
+                    <MapView
+                      style={{ width: '100%', height: '100%' }}
+                      region={{
+                        latitude: sessionData.midLat,
+                        longitude: sessionData.midLng,
+                        latitudeDelta: sessionData.zoomLevel,
+                        longitudeDelta: sessionData.zoomLevel,
+                      }}
+                      scrollEnabled={false}
+                      zoomEnabled={false}
+                    >
+                      <Polyline coordinates={session.coords} strokeWidth={4} strokeColor="#FACC15" />
+                    </MapView>
+                  ) : (
+                    <Text style={{ color: "#ccc", fontFamily: "InterRegular", padding: 20, textAlign: "center" }}>
+                      No GPS data available. This session was manually logged.
+                    </Text>
+                  )}
+                </View>
+                <View style={styles.stats}>
+                  <View style={styles.statBlockTime}>
+                    <Text style={styles.statTitle}>Time</Text>
+                    <Text style={styles.stat}>{formatTime(session.time)}</Text>
+                    <Text style={styles.statBottom}>hh:mm:ss</Text>
+                  </View>
+                  <View style={styles.statBlock}>
+                    <Text style={styles.statTitle}>Distance</Text>
+                    <Text style={styles.stat}>{session.distance}</Text>
+                    <Text style={styles.statBottom}>km</Text>
+                  </View>
+                  <View style={styles.statBlock}>
+                    <Text style={styles.statTitle}>Pace</Text>
+                    <Text style={styles.stat}>{formatPace(session.pace)}</Text>
+                    <Text style={styles.statBottom}>min/km</Text>
+                  </View>
+                </View>
               </View>
-              <View style={styles.stats}>
-                <View style={styles.statBlock}>
-                  <Text style={styles.statTitle}>Time</Text>
-                  <Text style={styles.stat}>{formatTime(session.time)}</Text>
-                  <Text style={styles.statBottom}>hh:mm:ss</Text>
-                </View>
-                <View style={styles.statBlock}>
-                  <Text style={styles.statTitle}>Distance</Text>
-                  <Text style={styles.stat}>{session.distance}</Text>
-                  <Text style={styles.statBottom}>km</Text>
-                </View>
-                <View style={styles.statBlock}>
-                  <Text style={styles.statTitle}>Pace</Text>
-                  <Text style={styles.stat}>{formatPace(session.pace)}</Text>
-                  <Text style={styles.statBottom}>min/km</Text>
-                </View>
-              </View>
-            </View>
-          ))
+            );
+          })
         ) : (
           <View style={styles.noSessionsContainer}>
             <Text style={styles.noSessionsText}>No training sessions yet</Text>
@@ -271,7 +377,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   sessionBox: {
-    backgroundColor: "#1E1E1E",
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 10,
     padding: 10,
     marginBottom: 30,
@@ -316,7 +422,11 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   statBlock: {
-    width: "35%",
+    width: "29%",
+    alignItems: "center",
+  },
+  statBlockTime: {
+    width: "40%",
     alignItems: "center",
   },
   statTitle: {

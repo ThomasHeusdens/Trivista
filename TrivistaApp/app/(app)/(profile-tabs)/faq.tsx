@@ -1,8 +1,7 @@
 /**
- * FAQ Screen
- *
  * Displays a list of frequently asked questions with collapsible answers.
  * Data is fetched from Firestore and animated with expand/collapse effects.
+ * @module 
  */
 import React, { useEffect, useState } from "react";
 import {
@@ -25,13 +24,11 @@ const screenHeight = Dimensions.get("window").height;
 const screenWidth = Dimensions.get("window").width;
 
 /**
- * FAQ()
- *
  * Main component that renders the FAQ list with animated dropdown behavior.
  *
- * @returns {JSX.Element} The rendered FAQ screen
+ * @returns {React.JSX.Element} The rendered FAQ screen
  */
-const FAQ = () => {
+const FAQ = (): React.JSX.Element => {
   const [faqItems, setFaqItems] = useState<any[]>([]);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const rotation = useState(new Animated.Value(0))[0];
@@ -39,13 +36,11 @@ const FAQ = () => {
   const [faqLoaded, setFaqLoaded] = useState(false);
 
   /**
-   * fetchFAQs()
-   *
    * Retrieves FAQ data from Firestore and stores it in local state.
    *
    * @returns {Promise<void>}
    */
-  const fetchFAQs = async () => {
+  const fetchFAQs = async (): Promise<void> => {
     try {
       const querySnapshot = await getDocs(collection(db, "FAQ"));
       const items = querySnapshot.docs.map((doc) => doc.data());
@@ -58,8 +53,6 @@ const FAQ = () => {
   }
 
   /**
-   * toggleItem(index)
-   *
    * Toggles the selected FAQ item and rotates the chevron icon.
    *
    * @param {number} index - Index of the clicked FAQ item
@@ -90,7 +83,7 @@ const FAQ = () => {
    * @param {number} index - Index of the current FAQ item
    * @returns {Animated.AnimatedInterpolation} Rotation value
    */
-  const getRotation = (index: number) =>
+  const getRotation = (index: number): Animated.AnimatedInterpolation<string> =>
     rotation.interpolate({
       inputRange: [0, 1],
       outputRange: ["0deg", index === openIndex ? "180deg" : "0deg"],
@@ -132,13 +125,13 @@ const FAQ = () => {
         data={faqItems}
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={{
-            paddingTop: 122,    // Space below top nav
-            paddingBottom: 82, // Space above bottom nav
+            paddingTop: 122,
+            paddingBottom: 82,
             paddingHorizontal: 15,
         }}
         renderItem={({ item, index }) => (
           <TouchableOpacity onPress={() => toggleItem(index)} style={{ marginBottom: 12 }}>
-            <BlurView intensity={60} tint="light" style={styles.card}>
+            <BlurView intensity={30} tint="light" style={styles.card}>
               <View style={styles.row}>
                 <Text style={styles.question}>{item.question}</Text>
                 <Animated.View style={{ transform: [{ rotate: getRotation(index) }] }}>

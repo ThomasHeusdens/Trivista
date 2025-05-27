@@ -1,11 +1,32 @@
+/**
+ * Displays a modal alert specific to the Training page.
+ * Prompts the user to begin a training session and navigates to the map on confirmation.
+ * @module
+ */
 import React from "react";
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 
-const CustomTrainAlert = ({ visible, title, message, onClose }) => {
+/**
+ * CustomTrainAlert component
+ *
+ * A modal component for showing a training-related prompt with navigation.
+ *
+ * @component
+ * @param {Object} props - Component props
+ * @param {boolean} props.visible - Controls modal visibility
+ * @param {string} props.title - Alert title text
+ * @param {string} props.message - Alert message text
+ * @param {() => void} props.onClose - Callback triggered when the modal is dismissed
+ * @returns {React.JSX.Element} Rendered custom alert modal
+ */
+const CustomTrainAlert = ({ visible, title, message, onClose }: { visible: boolean; title: string; message: string; onClose: () => void; }): React.JSX.Element => {
   const router = useRouter();
 
+  /**
+   * Handles user action to start training and navigates to the map page.
+   */
   const handleTrainNow = () => {
     onClose();
     router.push("/maps/map");

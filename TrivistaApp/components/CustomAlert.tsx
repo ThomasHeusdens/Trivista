@@ -1,7 +1,25 @@
+/**
+ * Displays a general-purpose alert modal used across multiple pages.
+ * Provides title, message, and an "OK" button to dismiss the alert.
+ * @module
+ */
 import React from "react";
 import { View, Text, Modal, TouchableOpacity, StyleSheet } from "react-native";
 
-const CustomAlert = ({ visible, title, message, onClose }) => {
+/**
+ * CustomAlert component
+ *
+ * A reusable alert modal that can be shown anywhere in the app.
+ *
+ * @component
+ * @param {Object} props - Component props
+ * @param {boolean} props.visible - Controls modal visibility
+ * @param {string} props.title - Alert title text
+ * @param {string} props.message - Alert message text
+ * @param {() => void} props.onClose - Callback triggered when the modal is dismissed
+ * @returns {React.JSX.Element} Rendered alert modal
+ */
+const CustomAlert = ({ visible, title, message, onClose }: { visible: boolean; title: string; message: string; onClose: () => void; }): React.JSX.Element => {
   return (
     <Modal
       animationType="fade"

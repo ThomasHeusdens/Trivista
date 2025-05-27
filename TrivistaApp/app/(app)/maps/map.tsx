@@ -1,3 +1,9 @@
+/**
+ * Main workout tracking screen that displays a live map view of the user's path.
+ * Includes support for real-time GPS tracking, distance and pace calculation,
+ * voice feedback on progress, pause/resume handling, and session summary navigation.
+ * @module
+ */
 import React, { useEffect, useRef, useState } from "react";
 import {
   View,
@@ -9,15 +15,25 @@ import {
 } from "react-native";
 import MapView, { PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
-import { ArrowLeft, Info, Play, Pause, StopCircle, PencilRuler, Volume2 } from "lucide-react-native";
+import { ArrowLeft, Info, Play, Pause, StopCircle, PencilLine, Volume2, VolumeX } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import CustomAlert from "@/components/CustomAlert";
 import { useSession } from "@/context";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase-db";
 import * as geolib from 'geolib';
+import * as Speech from "expo-speech";
+import * as TaskManager from "expo-task-manager";
+import { LOCATION_TASK_NAME } from "@/lib/location-task";
 
-const MapScreen = () => {
+/**
+ * Main training session screen that allows users to track outdoor activities such as running, biking, or swimming.
+ * Handles various session states: not started, running, paused, and completed.
+ *
+ * @returns {React.JSX.Element} Interactive training screen with map and controls.
+ */
+
+const MapScreen = (): React.JSX.Element => {
   const [location, setLocation] = useState(null);
   const [region, setRegion] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,16 +48,56 @@ const MapScreen = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [routeCoords, setRouteCoords] = useState([]);
   const [city, setCity] = useState("");
+  const pauseDuration = useRef(0);
+  const lastResumeTimestamp = useRef<number | null>(null);
+
+  const [voiceOn, setVoiceOn] = useState(true);
+  const spokenKilometers = useRef(new Set<number>());
 
   const router = useRouter();
   const mapRef = useRef(null);
   const watchId = useRef(null);
-  const timerInterval = useRef(null);
   const lastLocation = useRef(null);
   const pausedTime = useRef(null);
   const visualWatchId = useRef(null);
   const { user } = useSession();
 
+  /**
+   * Uses text-to-speech to announce progress updates during training.
+   * Announces the completed kilometer number, total time elapsed, and current pace.
+   *
+   * @param {number} km - The completed kilometer to announce.
+   * @param {number} timeSec - Total elapsed time in seconds.
+   * @param {number} paceMinPerKm - Current pace in minutes per kilometer.
+   *
+   * @returns {void}
+   */
+  const speakUpdate = (km: number, timeSec: number, paceMinPerKm: number): void => {
+    try {
+      const minutes = Math.floor(timeSec / 60);
+      const seconds = timeSec % 60;
+      const paceMin = Math.floor(paceMinPerKm);
+      const paceSec = Math.floor((paceMinPerKm - paceMin) * 60);
+
+      const paceFormatted = `${paceMin} minutes and ${paceSec} seconds`;
+      
+      const message = `Kilometer ${km} completed. Total time: ${minutes} minutes and ${seconds} seconds. Current pace: ${paceFormatted} per kilometer`;
+      
+      Speech.speak(message, { 
+        rate: 0.95,
+        pitch: 1.0,
+        onError: (error) => console.error("Speech error:", error),
+        onDone: () => console.log("Voice announcement completed")
+      });
+    } catch (error) {
+      console.error("Failed to produce voice update:", error);
+    }
+  };
+
+  /**
+   * Requests foreground location permission and fetches the user's current position
+   * to center the map initially.
+   */
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -67,6 +123,10 @@ const MapScreen = () => {
     })();
   }, []);
 
+  /**
+   * When not actively tracking, follows the user's location on the map
+   * with periodic updates every few seconds.
+   */
   useEffect(() => {
     let idleWatcher;
 
@@ -98,13 +158,16 @@ const MapScreen = () => {
     };
   }, [tracking]);
 
-
+  /**
+   * Fetches the current day’s training data from Firestore based on the user's start date.
+   */
   useEffect(() => {
     const fetchTraining = async () => {
       try {
-        const docRef = doc(db, "UserStartDate", user.uid);
-        const snap = await getDoc(docRef);
-        if (!snap.exists()) return;
+        const colRef = doc(db, "users", user.uid, "startDate", user.displayName || "date");
+        const snap = await getDoc(colRef);
+        if (snap.empty) return;
+
         const { startDate: startStr } = snap.data();
         const [day, month, year] = startStr.split("-").map(Number);
         const start = new Date(Date.UTC(year, month - 1, day));
@@ -122,45 +185,64 @@ const MapScreen = () => {
     if (user) fetchTraining();
   }, [user]);
 
+  /**
+   * Manages starting, pausing, and stopping both visual and background tracking
+   * depending on the current tracking and pause state.
+   */
   useEffect(() => {
-    if (tracking) {
-      if (!isPaused) {
-        if (!startTime) {
-          setStartTime(new Date());
-        }
-        
-        timerInterval.current = setInterval(() => {
-          setElapsedTime((prev) => prev + 1);
-        }, 1000);
-
-        startLocationTracking();
-      } else {
-        stopLocationTracking();
-        if (timerInterval.current) {
-          clearInterval(timerInterval.current);
-          timerInterval.current = null;
-        }
+    if (tracking && !isPaused) {
+      if (!startTime) {
+        const now = new Date();
+        setStartTime(now);
+        lastResumeTimestamp.current = now.getTime();
+        pauseDuration.current = 0;
       }
+
+      startLocationTracking();
+    } else if (isPaused) {
+      stopLocationTracking();
     } else {
       stopAllTracking();
-      if (timerInterval.current) {
-        clearInterval(timerInterval.current);
-        timerInterval.current = null;
-      }
     }
 
     return () => {
       stopAllTracking();
-      if (timerInterval.current) {
-        clearInterval(timerInterval.current);
-        timerInterval.current = null;
-      }
     };
   }, [tracking, isPaused]);
 
-  const startLocationTracking = async () => {
+  /**
+   * Starts background GPS tracking and updates total distance covered.
+   * Ensures permissions are granted and background task is active.
+   * @async
+   * @return {Promise<void>}
+   */
+  const startLocationTracking = async (): Promise<void> => {
     try {
       startVisualTracking();
+
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      if (status !== "granted") {
+        console.warn("Background permission not granted");
+        return;
+      }
+
+      const isTaskDefined = await TaskManager.isTaskDefined(LOCATION_TASK_NAME);
+      const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
+
+      if (!hasStarted) {
+        await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
+          accuracy: Location.Accuracy.BestForNavigation,
+          timeInterval: 5000,
+          distanceInterval: 5,
+          showsBackgroundLocationIndicator: true,
+          pausesUpdatesAutomatically: false,
+          foregroundService: {
+            notificationTitle: "TRIVISTA",
+            notificationBody: "Tracking your session in background.",
+            notificationColor: "#FACC15",
+          },
+        });
+      }
       
       if (!isPaused) {
         const subscription = await Location.watchPositionAsync(
@@ -195,7 +277,12 @@ const MapScreen = () => {
     }
   };
 
-  const startVisualTracking = async () => {
+  /**
+   * Starts front-end map updates (with polylines) and centers the camera on movement.
+   * @async
+   * @return {Promise<void>}
+   */
+  const startVisualTracking = async (): Promise<void> => {
     try {
       const subscription = await Location.watchPositionAsync(
         {
@@ -225,6 +312,9 @@ const MapScreen = () => {
     }
   };
 
+  /**
+   * Stops active location tracking for distance calculation.
+   */
   const stopLocationTracking = () => {
     if (watchId.current) {
       watchId.current.remove();
@@ -232,14 +322,34 @@ const MapScreen = () => {
     }
   };
 
-  const stopAllTracking = () => {
+  /**
+   * Halts both background and visual tracking activities safely,
+   * including location task cleanup.
+   * @async
+   * @return {Promise<void>}
+   */
+  const stopAllTracking = async (): Promise<void> => {
     stopLocationTracking();
     if (visualWatchId.current) {
       visualWatchId.current.remove();
       visualWatchId.current = null;
     }
+
+    try {
+      const hasStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME);
+      if (hasStarted) {
+        await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);
+      } else {
+        console.log("Background task was never started, skipping stop.");
+      }
+    } catch (error) {
+      console.warn("Couldn't stop background task — it may not have been registered:", error.message);
+    }
   };
 
+  /**
+   * Recalculates current pace (minutes/km) whenever time or distance updates.
+   */
   useEffect(() => {
     if (elapsedTime > 0 && distance > 0) {
       const paceValue = (elapsedTime / 60) / (distance / 1000);
@@ -249,6 +359,31 @@ const MapScreen = () => {
     }
   }, [elapsedTime, distance]);
 
+  /**
+   * Announces each completed kilometer via voice if enabled and not paused.
+   * Avoids repeating announcements by caching completed kilometers.
+   */
+  useEffect(() => {
+    if (!voiceOn || !tracking || isPaused) return;
+
+    const currentKilometers = distance / 1000;
+    const lastCompletedKilometer = Math.floor(currentKilometers);
+    
+    if (lastCompletedKilometer > 0 && !spokenKilometers.current.has(lastCompletedKilometer)) {
+      if (currentKilometers >= lastCompletedKilometer + 0.01) {
+        console.log(`Announcing kilometer ${lastCompletedKilometer}`);
+        spokenKilometers.current.add(lastCompletedKilometer);
+        
+        try {
+          const currentPace = elapsedTime > 0 ? (elapsedTime / 60) / (distance / 1000) : 0;
+          speakUpdate(lastCompletedKilometer, elapsedTime, currentPace);
+        } catch (error) {
+          console.error("Error during voice announcement:", error);
+        }
+      }
+    }
+  }, [distance, tracking, isPaused, voiceOn]);
+
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -256,6 +391,9 @@ const MapScreen = () => {
     return `${hours.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  /**
+   * Formats time and pace for display in hh:mm:ss and mm:ss respectively.
+   */
   const formatPace = (paceMinPerKm) => {
     if (!isFinite(paceMinPerKm) || paceMinPerKm <= 0) return "--:--";
 
@@ -264,7 +402,12 @@ const MapScreen = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const setCityForManualLogging = async () => {
+  /**
+   * Gets user's city from geolocation to attach it to manually logged sessions.
+   * @async
+   * @return {Promise<string|null>} Resolved city name or null if failed.
+   */
+  const setCityForManualLogging = async (): Promise<string | null> => {
     try {
       const initialPosition = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.BestForNavigation,
@@ -279,8 +422,8 @@ const MapScreen = () => {
         if (geoData.length > 0) {
           const { city: cityName, region, country } = geoData[0];
           const resolvedCity = `${cityName || region}, ${country}`;
-          setCity(resolvedCity); // for your app state
-          return resolvedCity;   // for immediate use
+          setCity(resolvedCity); 
+          return resolvedCity;   
         }
       }
     } catch (error) {
@@ -290,8 +433,39 @@ const MapScreen = () => {
     return null;
   };
 
+  /**
+   * Uses `requestAnimationFrame` to keep a smooth and accurate update of elapsed time,
+   * even across pause/resume cycles.
+   */
+  useEffect(() => {
+    let animationFrame;
 
-  const handleManualLogPress = async () => {
+    const update = () => {
+      if (tracking && !isPaused && startTime) {
+        const now = Date.now();
+        const totalPaused = pauseDuration.current;
+        const activeTime = now - startTime.getTime() - totalPaused;
+        setElapsedTime(Math.floor(activeTime / 1000));
+      }
+
+      animationFrame = requestAnimationFrame(update);
+    };
+
+    if (tracking && !isPaused) {
+      animationFrame = requestAnimationFrame(update);
+    }
+
+    return () => {
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+    };
+  }, [tracking, isPaused, startTime]);
+
+  /**
+   * Navigates the user to the manual logging screen with geolocation city data.
+   * @async
+   * @return {Promise<void>}
+   */
+  const handleManualLogPress = async (): Promise<void> => {
     const resolvedCity = await setCityForManualLogging();
 
     router.push({
@@ -303,13 +477,41 @@ const MapScreen = () => {
     });
   };
 
+  /**
+   * Clears spoken kilometer history and stops any ongoing speech.
+   * @async
+   * @return {Promise<void>}
+   */
+  const resetVoiceTracking = async (): Promise<void> => {
+    spokenKilometers.current.clear();
+    
+    try {
+      const isSpeaking = await Speech.isSpeakingAsync();
+      if (isSpeaking) {
+        Speech.stop();
+      }
+    } catch (error) {
+      console.error("Error checking speech status:", error);
+    }
+  };
 
-  const startActivity = async () => {
+  /**
+   * Initializes all tracking states and resets voice and distance metrics.
+   * Also sets the city for the session summary screen.
+   * @async
+   * @return {Promise<void>}
+   */
+  const startActivity = async (): Promise<void> => {
     setElapsedTime(0);
     setDistance(0);
     setPace(0);
     setRouteCoords([]);
     setIsPaused(false);
+    await resetVoiceTracking();
+    setStartTime(new Date());
+    pauseDuration.current = 0;
+    lastResumeTimestamp.current = Date.now();
+
 
     try {
       const initialPosition = await Location.getCurrentPositionAsync({
@@ -336,14 +538,26 @@ const MapScreen = () => {
     setTracking(true);
   };
 
-  const pauseActivity = () => {
+  /**
+   * Toggles tracking pause state. 
+   * Accumulates paused time to keep accurate elapsed time.
+   * @async
+   * @return {Promise<void>}
+   */
+  const pauseActivity = (): Promise<void> => {
     setIsPaused(true);
-    pausedTime.current = new Date();
+    pausedTime.current = Date.now();
     stopLocationTracking();
     console.log("Activity paused");
   };
 
-  const resumeActivity = async () => {
+  /**
+   * Resumes from last known location.
+   * Accumulates paused time to keep accurate elapsed time.
+   * @async
+   * @return {Promise<void>}
+   */
+  const resumeActivity = async (): Promise<void> => {
     try {
       const currentPosition = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.BestForNavigation
@@ -359,12 +573,25 @@ const MapScreen = () => {
       console.error("Failed to get position for resume:", error);
     }
 
+    const now = Date.now();
+    if (pausedTime.current) {
+      pauseDuration.current += now - pausedTime.current;
+    }
+    lastResumeTimestamp.current = now;
+    pausedTime.current = null;
+
     setIsPaused(false);
     startLocationTracking();
     console.log("Activity resumed");
   };
 
-  const stopActivity = () => {
+  /**
+   * Ends the session, stops all tracking, resets states,
+   * and navigates to the session summary with stats and route data.
+   * @async
+   * @return {Promise<void>}
+   */
+  const stopActivity = async (): Promise<void> => {
     const finalTime = elapsedTime;
     const finalDistance = distance;
     const finalPace = pace;
@@ -374,6 +601,7 @@ const MapScreen = () => {
     setIsPaused(false);
     setStartTime(null);
     stopAllTracking();
+    await resetVoiceTracking();
 
     router.push({
       pathname: "/(app)/session/session-summary",
@@ -437,17 +665,17 @@ const MapScreen = () => {
       {tracking && (
         <View style={styles.trackingBar}>
           <View style={styles.stats}>
-            <View className="flex-column w-[35%]">
+            <View className="flex-column w-[40%]">
               <Text style={styles.statTitle}>Time</Text>
               <Text style={styles.stat}>{formatTime(elapsedTime)}</Text>
               <Text style={styles.statBottom}>hh:mm:ss</Text>
             </View>
-            <View className="flex-column w-[30%]">
+            <View className="flex-column w-[25%]">
               <Text style={styles.statTitle}>Distance</Text>
               <Text style={styles.stat}>{(distance / 1000).toFixed(2)}</Text>
               <Text style={styles.statBottom}>km</Text>
             </View>
-            <View className="flex-column w-[30%]">
+            <View className="flex-column w-[28%]">
               <Text style={styles.statTitle}>Pace</Text>
               <Text style={styles.stat}>{formatPace(pace)}</Text>
               <Text style={styles.statBottom}>min/km</Text>
@@ -475,12 +703,24 @@ const MapScreen = () => {
             <TouchableOpacity style={styles.stopButton} onPress={stopActivity}>
               <StopCircle color="#1E1E1E" size={28} />
             </TouchableOpacity>
+            <View style={styles.navButtonContainer}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setVoiceOn(prev => !prev)}
+              >
+                {voiceOn ? (
+                  <Volume2 color="#1E1E1E" size={24} />
+                ) : (
+                  <VolumeX color="#1E1E1E" size={24} />
+                )}
+              </TouchableOpacity>
+            </View>
           </>
         ) : (
           <>
             <View style={styles.navButtonContainer}>
               <TouchableOpacity style={styles.iconButton} onPress={handleManualLogPress}>
-                <PencilRuler color="#1E1E1E" size={24} />
+                <PencilLine color="#1E1E1E" size={24} />
               </TouchableOpacity>
             </View>
 
@@ -497,8 +737,15 @@ const MapScreen = () => {
             </View>
 
             <View style={styles.navButtonContainer}>
-              <TouchableOpacity style={styles.iconButton}>
-                <Volume2 color="#1E1E1E" size={24} />
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => setVoiceOn(prev => !prev)}
+              >
+                {voiceOn ? (
+                  <Volume2 color="#1E1E1E" size={24} />
+                ) : (
+                  <VolumeX color="#1E1E1E" size={24} />
+                )}
               </TouchableOpacity>
             </View>
           </>
