@@ -14,24 +14,24 @@ import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
-  Pressable,
   Image,
   ImageBackground,
   StyleSheet,
   Dimensions,
   ScrollView,
   Vibration,
+  Modal,
+  TouchableOpacity,
 } from "react-native";
 import { useSession } from "@/context";
 import { db } from "@/lib/firebase-db";
-import { Timer, ChevronDown, ChevronUp } from "lucide-react-native";
+import { Timer, ChevronDown, ChevronUp, X } from "lucide-react-native";
 import { Audio } from "expo-av";
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
   withTiming, 
   cancelAnimation,
-  withSequence,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { ActivityIndicator } from "react-native";
@@ -85,6 +85,8 @@ const Stretch = (): React.JSX.Element => {
   const [videosLoaded, setVideosLoaded] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
 
+  const [showFullScreenImage, setShowFullScreenImage] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState(null);
 
   const progress = useSharedValue(0);
   const intervalRef = useRef(null);
@@ -169,6 +171,22 @@ const Stretch = (): React.JSX.Element => {
     } catch (error) {
       console.error("Error saving stretching completion:", error);
     }
+  };
+
+  /**
+   * Opens the full-screen image viewer for a specific exercise
+   */
+  const openFullScreenImage = (exercise: React.SetStateAction<null>) => {
+    setSelectedExercise(exercise);
+    setShowFullScreenImage(true);
+  };
+
+  /**
+   * Closes the full-screen image viewer
+   */
+  const closeFullScreenImage = () => {
+    setShowFullScreenImage(false);
+    setSelectedExercise(null);
   };
 
   useEffect(() => {
@@ -463,30 +481,30 @@ const Stretch = (): React.JSX.Element => {
         {!showVideo && !timerActive && !stretchingCompleted && (
           <View className="flex-1 items-center mb-5">        
             <View className="flex-row justify-between mb-5 w-[100%] self-center">
-              <Pressable
+              <TouchableOpacity
                 onPress={() => setSelectedType("pre")}
                 className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "pre" ? "bg-white/30" : "bg-[#FACC15]"}`}
               >
                 <Text className={`font-[Bison] ${selectedType === "pre" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
                   PRE
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
 
-              <Pressable
+              <TouchableOpacity
                 onPress={() => setSelectedType("post")}
                 className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "post" ? "bg-white/30" : "bg-[#FACC15]"}`}
               >
                 <Text className={`font-[Bison] ${selectedType === "post" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
                   POST
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
             <View className="flex-1 w-[100%] items-center">
-              <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+              <TouchableOpacity className="bg-white/30 rounded-[10px] px-2 py-2 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
                 <ChevronDown color="white" size={20} />
                 <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
                 <ChevronDown color="white" size={20} />
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -494,30 +512,30 @@ const Stretch = (): React.JSX.Element => {
         {showVideo && !timerActive && !stretchingCompleted && (
           <View>        
             <View className="flex-row justify-between mb-5 w-[100%] self-center">
-              <Pressable
+              <TouchableOpacity
                 onPress={() => setSelectedType("pre")}
                 className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "pre" ? "bg-white/30" : "bg-[#FACC15]"}`}
               >
                 <Text className={`font-[Bison] ${selectedType === "pre" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
                   PRE
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
 
-              <Pressable
+              <TouchableOpacity
                 onPress={() => setSelectedType("post")}
                 className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "post" ? "bg-white/30" : "bg-[#FACC15]"}`}
               >
                 <Text className={`font-[Bison] ${selectedType === "post" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
                   POST
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
             <View className="flex-1 w-[100%] items-center mb-4">
-              <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+              <TouchableOpacity className="bg-white/30 rounded-[10px] px-2 py-2 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
                 <ChevronUp color="white" size={20} />
                 <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
                 <ChevronUp color="white" size={20} />
-              </Pressable>
+              </TouchableOpacity>
             </View>
             <View style={{ height: 200, marginBottom: 15, borderRadius: 10, overflow: "hidden" }}>
               <WebView
@@ -548,11 +566,11 @@ const Stretch = (): React.JSX.Element => {
 
         {showVideo && timerActive && (
           <View>
-            <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 mb-4 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+            <TouchableOpacity className="bg-white/30 rounded-[10px] px-2 py-2 mb-4 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
               <ChevronUp color="white" size={20} />
               <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
               <ChevronUp color="white" size={20} />
-            </Pressable>
+            </TouchableOpacity>
             <View style={{ height: 200, marginBottom: 15, borderRadius: 10, overflow: "hidden" }}>
               <WebView
                 source={{
@@ -581,11 +599,11 @@ const Stretch = (): React.JSX.Element => {
 
         {!showVideo && timerActive && (
           <View className="flex-1 w-[100%] items-center mb-5">
-            <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+            <TouchableOpacity className="bg-white/30 rounded-[10px] px-2 py-2 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
               <ChevronDown color="white" size={20} />
               <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
               <ChevronDown color="white" size={20} />
-            </Pressable>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -593,30 +611,30 @@ const Stretch = (): React.JSX.Element => {
         {showVideo && stretchingCompleted && !timerActive && (
           <View className="items-center">
             <View className="flex-row justify-between mb-6 w-[100%]">
-              <Pressable
+              <TouchableOpacity
                 onPress={() => setSelectedType("pre")}
                 className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "pre" ? "bg-white/30" : "bg-[#FACC15]"}`}
               >
                 <Text className={`font-[Bison] ${selectedType === "pre" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
                   PRE
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
 
-              <Pressable
+              <TouchableOpacity
                 onPress={() => setSelectedType("post")}
                 className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "post" ? "bg-white/30" : "bg-[#FACC15]"}`}
               >
                 <Text className={`font-[Bison] ${selectedType === "post" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
                   POST
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
             <View>
-              <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 mb-4 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+              <TouchableOpacity className="bg-white/30 rounded-[10px] px-2 py-2 mb-4 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
                 <ChevronUp color="white" size={20} />
                 <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
                 <ChevronUp color="white" size={20} />
-              </Pressable>
+              </TouchableOpacity>
               <View style={{ height: 200, marginBottom: 15, borderRadius: 10, overflow: "hidden" }}>
                 <WebView
                   source={{
@@ -653,30 +671,30 @@ const Stretch = (): React.JSX.Element => {
         {!showVideo && stretchingCompleted && !timerActive && (
           <View className="items-center">
             <View className="flex-row justify-between mb-6 w-[100%]">
-              <Pressable
+              <TouchableOpacity
                 onPress={() => setSelectedType("pre")}
                 className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "pre" ? "bg-white/30" : "bg-[#FACC15]"}`}
               >
                 <Text className={`font-[Bison] ${selectedType === "pre" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
                   PRE
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
 
-              <Pressable
+              <TouchableOpacity
                 onPress={() => setSelectedType("post")}
                 className={`rounded-[10px] px-6 py-5 w-[48%] items-center ${selectedType === "post" ? "bg-white/30" : "bg-[#FACC15]"}`}
               >
                 <Text className={`font-[Bison] ${selectedType === "post" ? "text-white" : "text-[#1E1E1E]"}`} style={{ letterSpacing: 1.5, fontSize: 20 }}>
                   POST
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
             <View>
-              <Pressable className="bg-white/30 rounded-[10px] px-2 py-2 mb-4 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
+              <TouchableOpacity className="bg-white/30 rounded-[10px] px-2 py-2 mb-4 w-[100%] items-center border border-[#FACC15] flex-row justify-between" onPress={() => setShowVideo((prev) => !prev)}>
                 <ChevronDown color="white" size={20} />
                 <Text className="text-white font-[Bison]" style={{ letterSpacing: 1.5, fontSize: 15 }}>Today's YouTube video</Text>
                 <ChevronDown color="white" size={20} />
-              </Pressable>
+              </TouchableOpacity>
             </View>
             <Text className="text-white font-[InterBold] text-xl text-center mb-2">
               Today's {selectedType === "pre" ? "Pre" : "Post"}-Stretching Completed!
@@ -704,7 +722,11 @@ const Stretch = (): React.JSX.Element => {
 
         {/* Only show exercises when not completed */}
         {!timerActive && !stretchingCompleted && filtered.map((s, i) => (
-          <View key={i} className="flex-row bg-white/20 rounded-[10px] mb-5 overflow-hidden">
+          <TouchableOpacity 
+            key={i} 
+            className="flex-row bg-white/20 rounded-[10px] mb-5 overflow-hidden"
+            onPress={() => openFullScreenImage(s)}
+          >
             <Image
               source={require("@/assets/images/bicycle.jpg")}
               style={{ width: 100, minHeight: 100, height: "100%", alignSelf: "stretch", borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }}
@@ -714,14 +736,17 @@ const Stretch = (): React.JSX.Element => {
               <Text className="text-white font-[InterBold] text-base mb-1">{s.name}</Text>
               <Text className="text-[#B4B4B4] font-[InterRegular] text-sm">{s.description}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         ))}
         
         {/* When training is active, show only upcoming exercises */}
         {timerActive && displayedExercises
           .filter((_, idx) => idx !== 0) 
           .map((s, i) => (
-            <View key={i} className="flex-row bg-white/20 rounded-[10px] mb-5 overflow-hidden">
+            <View 
+              key={i} 
+              className="flex-row bg-white/20 rounded-[10px] mb-5 overflow-hidden"
+            >
               <Image
                 source={require("@/assets/images/bicycle.jpg")}
                 style={{ width: 100, minHeight: 100, height: "100%", alignSelf: "stretch", borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }}
@@ -748,24 +773,24 @@ const Stretch = (): React.JSX.Element => {
           </View>
 
           <View className="absolute bottom-[90px] left-[25px] right-[25px] flex-row justify-between">
-            <Pressable
+            <TouchableOpacity
               onPress={handleStop}
               className="bg-[#FACC15] rounded-[10px] w-[48%] items-center py-5 px-6"
             >
               <Text className="text-[#1E1E1E] font-[Bison] text-[20px] mt-1">Stop</Text>
-            </Pressable>
-            <Pressable
+            </TouchableOpacity>
+            <TouchableOpacity
               onPress={handlePauseResume}
               className="bg-[#FACC15] rounded-[10px] w-[48%] items-center py-5 px-6"
             >
               <Text className="text-[#1E1E1E] font-[Bison] text-[20px] mt-1">{paused ? "Resume" : "Pause"}</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </>
       )}
 
       {!timerActive && !stretchingCompleted && (
-        <Pressable
+        <TouchableOpacity
           onPress={() => {
             setTimerActive(true);
             setPausedTimeLeft(0);
@@ -778,8 +803,46 @@ const Stretch = (): React.JSX.Element => {
           <Text className="text-[#1E1E1E] text-[20px] font-[Bison]" style={{ letterSpacing: 1.5 }}>
             Start
           </Text>
-        </Pressable>
+        </TouchableOpacity>
       )}
+       <Modal
+        visible={showFullScreenImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeFullScreenImage}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>         
+          {selectedExercise && (
+            <View style={{ width: screenWidth * 0.9, alignItems: 'center' }}>
+              <TouchableOpacity
+                style={{ position: 'absolute', top: 10, left: 10, zIndex: 1 }}
+                onPress={closeFullScreenImage}
+              >
+                <View style={{ backgroundColor: '#FACC15', borderRadius: 10, padding: 10 }}>
+                  <X color="#1E1E1E" size={24} />
+                </View>
+              </TouchableOpacity>
+              <Image
+                source={require("@/assets/images/bicycle.jpg")}
+                style={{ 
+                  width: '100%', 
+                  height: screenHeight * 0.6,
+                  borderRadius: 10 
+                }}
+                resizeMode="cover"
+              />
+              <View style={{ padding: 20, alignItems: 'center' }}>
+                <Text className="text-white font-[InterBold] text-2xl mb-3 text-center">
+                  {selectedExercise.name}
+                </Text>
+                <Text className="text-[#B4B4B4] font-[InterRegular] text-base text-center">
+                  {selectedExercise.description}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+      </Modal>
     </>
   );
 };
