@@ -21,7 +21,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import MapView, { Polyline } from "react-native-maps";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase-db";
 import { getAuth } from "firebase/auth";
 import { Picker } from "@react-native-picker/picker";
@@ -67,14 +67,17 @@ const Sessions = (): React.JSX.Element => {
   const [typeModalVisible, setTypeModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
+
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
   
   const [sessionCoordData, setSessionCoordData] = useState({});
 
   const typeOptions = [
     { label: "All Sessions", value: "all" },
-    { label: "Run", value: "run" },
-    { label: "Bike", value: "bike" },
-    { label: "Swim", value: "swim" },
+    { label: "Runing", value: "run" },
+    { label: "Cycling", value: "bike" },
+    { label: "Swimming", value: "swim" },
   ];
 
   /**
@@ -151,7 +154,10 @@ const Sessions = (): React.JSX.Element => {
           orderBy("timestamp", "desc")
         );
         const snapshot = await getDocs(q);
-        const data = snapshot.docs.map((doc) => doc.data());
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        }));
         
         const coordData = {};
         data.forEach((session, index) => {
@@ -172,6 +178,51 @@ const Sessions = (): React.JSX.Element => {
 
     fetchSessions();
   }, []);
+
+  const handleDeleteSession = async () => {
+    if (!sessionToDelete) return;
+
+    try {
+      const user = getAuth().currentUser;
+      if (!user) return;
+
+      const sessionRef = doc(db, "users", user.uid, "trainingSessions", sessionToDelete.id);
+      await deleteDoc(sessionRef);
+
+      const sessionIndex = sessions.findIndex((s) => s.id === sessionToDelete.id);
+      
+      const updatedSessions = sessions.filter((s) => s.id !== sessionToDelete.id);
+      setSessions(updatedSessions);
+      setFilteredSessions(updatedSessions.filter(session => 
+        selectedType === "all" || session.type === selectedType
+      ));
+      
+      setSessionCoordData((prev) => {
+        const newCoordData = { ...prev };
+        if (sessionIndex !== -1) {
+          delete newCoordData[sessionIndex];
+          
+          const reindexedCoordData = {};
+          Object.keys(newCoordData).forEach(key => {
+            const oldIndex = parseInt(key);
+            if (oldIndex > sessionIndex) {
+              reindexedCoordData[oldIndex - 1] = newCoordData[key];
+            } else if (oldIndex < sessionIndex) {
+              reindexedCoordData[oldIndex] = newCoordData[key];
+            }
+          });
+          
+          return reindexedCoordData;
+        }
+        return newCoordData;
+      });
+
+      setDeleteModalVisible(false);
+      setSessionToDelete(null);
+    } catch (err) {
+      console.error("Error deleting session:", err);
+    }
+  };
 
   useEffect(() => {
     if (sessionsLoaded) {
@@ -268,65 +319,74 @@ const Sessions = (): React.JSX.Element => {
             const sessionData = sessionCoordData[sessions.indexOf(session)];
             
             return (
-              <View key={idx} style={styles.sessionBox}>
-                <View style={styles.headerRow}>
-                  <Text style={styles.typeText}>
-                    {typeIcon[session.type]}
-                  </Text>
-                  <Text style={styles.cityText}>
-                    {session.city}, {new Date(session.createdAt).toLocaleString()}
-                  </Text>
-                  <Text style={styles.feelingText}>{session.feeling}</Text>
-                </View>
-                <Text style={styles.sessionName}>{session.name}</Text>
-                <View style={{ 
-                  width: mapWidth, 
-                  height: 200, 
-                  borderRadius: 10, 
-                  overflow: 'hidden',
-                  marginBottom: 10,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  backgroundColor: "rgba(255, 255, 255, 0.05)",
-                }}>
-                  {session.coords && session.coords.length > 0 && sessionData ? (
-                    <MapView
-                      style={{ width: '100%', height: '100%' }}
-                      region={{
-                        latitude: sessionData.midLat,
-                        longitude: sessionData.midLng,
-                        latitudeDelta: sessionData.zoomLevel,
-                        longitudeDelta: sessionData.zoomLevel,
-                      }}
-                      scrollEnabled={false}
-                      zoomEnabled={false}
-                    >
-                      <Polyline coordinates={session.coords} strokeWidth={4} strokeColor="#FACC15" />
-                    </MapView>
-                  ) : (
-                    <Text style={{ color: "#ccc", fontFamily: "InterRegular", padding: 20, textAlign: "center" }}>
-                      No GPS data available. This session was manually logged.
+              <TouchableOpacity 
+                key={session.id} 
+                onPress={() => {
+                  setSessionToDelete(session);
+                  setDeleteModalVisible(true);
+                }} 
+                activeOpacity={0.8}
+              >
+                <View style={styles.sessionBox}> 
+                  <View style={styles.headerRow}>
+                    <Text style={styles.typeText}>
+                      {typeIcon[session.type]}
                     </Text>
-                  )}
+                    <Text style={styles.cityText}>
+                      {session.city}, {new Date(session.createdAt).toLocaleString()}
+                    </Text>
+                    <Text style={styles.feelingText}>{session.feeling}</Text>
+                  </View>
+                  <Text style={styles.sessionName}>{session.name}</Text>
+                  <View style={{ 
+                    width: mapWidth, 
+                    height: 200, 
+                    borderRadius: 10, 
+                    overflow: 'hidden',
+                    marginBottom: 10,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: "rgba(255, 255, 255, 0.05)",
+                  }}>
+                    {session.coords && session.coords.length > 0 && sessionData ? (
+                      <MapView
+                        style={{ width: '100%', height: '100%' }}
+                        region={{
+                          latitude: sessionData.midLat,
+                          longitude: sessionData.midLng,
+                          latitudeDelta: sessionData.zoomLevel,
+                          longitudeDelta: sessionData.zoomLevel,
+                        }}
+                        scrollEnabled={false}
+                        zoomEnabled={false}
+                      >
+                        <Polyline coordinates={session.coords} strokeWidth={4} strokeColor="#FACC15" />
+                      </MapView>
+                    ) : (
+                      <Text style={{ color: "#ccc", fontFamily: "InterRegular", padding: 20, textAlign: "center" }}>
+                        No GPS data available. This session was manually logged.
+                      </Text>
+                    )}
+                  </View>
+                  <View style={styles.stats}>
+                    <View style={styles.statBlockTime}>
+                      <Text style={styles.statTitle}>Time</Text>
+                      <Text style={styles.stat}>{formatTime(session.time)}</Text>
+                      <Text style={styles.statBottom}>hh:mm:ss</Text>
+                    </View>
+                    <View style={styles.statBlock}>
+                      <Text style={styles.statTitle}>Distance</Text>
+                      <Text style={styles.stat}>{session.distance}</Text>
+                      <Text style={styles.statBottom}>km</Text>
+                    </View>
+                    <View style={styles.statBlock}>
+                      <Text style={styles.statTitle}>Pace</Text>
+                      <Text style={styles.stat}>{formatPace(session.pace)}</Text>
+                      <Text style={styles.statBottom}>min/km</Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.stats}>
-                  <View style={styles.statBlockTime}>
-                    <Text style={styles.statTitle}>Time</Text>
-                    <Text style={styles.stat}>{formatTime(session.time)}</Text>
-                    <Text style={styles.statBottom}>hh:mm:ss</Text>
-                  </View>
-                  <View style={styles.statBlock}>
-                    <Text style={styles.statTitle}>Distance</Text>
-                    <Text style={styles.stat}>{session.distance}</Text>
-                    <Text style={styles.statBottom}>km</Text>
-                  </View>
-                  <View style={styles.statBlock}>
-                    <Text style={styles.statTitle}>Pace</Text>
-                    <Text style={styles.stat}>{formatPace(session.pace)}</Text>
-                    <Text style={styles.statBottom}>min/km</Text>
-                  </View>
-                </View>
-              </View>
+              </TouchableOpacity>
             );
           })
         ) : (
@@ -335,6 +395,36 @@ const Sessions = (): React.JSX.Element => {
           </View>
         )}
       </ScrollView>
+      <Modal
+        transparent
+        visible={deleteModalVisible}
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.6)" }}
+        >
+          <View style={{ backgroundColor: "#1E1E1E", padding: 25, borderRadius: 10, width: "80%", borderColor: "#FACC15", borderWidth: 1 }}>
+            <Text style={{ color: "white", fontSize: 18, fontFamily: "InterBold", marginBottom: 15, textAlign: "center" }}>
+              Are you sure you want to delete this training session?
+            </Text>
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={() => setDeleteModalVisible(false)}
+                className="flex-1 bg-[#FACC15] py-3 rounded-[8px]"
+              >
+                <Text className="text-[#1e1e1e] text-[20px] text-center font-[Bison] tracking-[1.5px]">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDeleteSession}
+                className="flex-1 bg-[#F87171] py-3 rounded-[8px]"
+              >
+                <Text className="text-white text-[20px] text-center font-[Bison] tracking-[1.5px]">Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
