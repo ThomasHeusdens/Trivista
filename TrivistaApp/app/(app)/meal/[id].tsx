@@ -24,6 +24,7 @@ import {
   StyleSheet,
   Text,
   View,
+  TextInput,
 } from "react-native";
 import { Checkbox } from "react-native-paper";
 
@@ -54,6 +55,8 @@ const MealDetail = (): React.JSX.Element => {
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   /**
    * Fetches meal and ingredient data from Firestore.
@@ -228,48 +231,64 @@ const MealDetail = (): React.JSX.Element => {
           <MacroBox label="Fat" value={`${totalFat}g`} colorMacro="#3B82F6" colorValue="rgba(255,255,255,0.15)" />
         </View>
 
-        <Text style={styles.ingredientTitle}>Ingredients</Text>
-        <View style={{ paddingHorizontal: 20 }}>
-          {Object.entries(ingredientCounts).map(([id, count]) => {
-            const selectedCount = selectedIds.filter((i) => i === id).length;
+        {Object.keys(ingredientCounts).length > 0 && (
+          <>
+            <Text style={styles.ingredientTitle}>Ingredients</Text>
+            <View style={{ paddingHorizontal: 20 }}>
+              {Object.entries(ingredientCounts).map(([id, count]) => {
+                const selectedCount = selectedIds.filter((i) => i === id).length;
 
-            return (
-              <View key={id} style={styles.checkboxRow}>
-                <Checkbox
-                  status={selectedCount > 0 ? "checked" : "unchecked"}
-                  onPress={() => toggleAll(id, count)}
-                  color="#FACC15"
-                  uncheckedColor="#FACC15"
-                />
-                <Text style={styles.ingredientText}>
-                  {ingredients[id]?.name || "Unknown"} ({count})
-                </Text>
-                <View style={styles.counterWrapper}>
-                  <TouchableOpacity 
-                    onPress={() => decrement(id)} 
-                    style={styles.counterButton}
-                    disabled={selectedCount === 0}
-                  >
-                    <Text style={[
-                      styles.counterSymbol, 
-                      selectedCount === 0 ? {color: '#666'} : {color: 'white'}
-                    ]}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.counterNumber}>{selectedCount}</Text>
-                  <TouchableOpacity onPress={() => increment(id)} style={styles.counterButton}>
-                    <Text style={styles.counterSymbol}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+                return (
+                  <View key={id} style={styles.checkboxRow}>
+                    <Checkbox
+                      status={selectedCount > 0 ? "checked" : "unchecked"}
+                      onPress={() => toggleAll(id, count)}
+                      color="#FACC15"
+                      uncheckedColor="#FACC15"
+                    />
+                    <Text style={styles.ingredientText}>
+                      {ingredients[id]?.name || "Unknown"} ({count})
+                    </Text>
+                    <View style={styles.counterWrapper}>
+                      <TouchableOpacity 
+                        onPress={() => decrement(id)} 
+                        style={styles.counterButton}
+                        disabled={selectedCount === 0}
+                      >
+                        <Text style={[
+                          styles.counterSymbol, 
+                          selectedCount === 0 ? { color: '#666' } : { color: 'white' }
+                        ]}>-</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.counterNumber}>{selectedCount}</Text>
+                      <TouchableOpacity onPress={() => increment(id)} style={styles.counterButton}>
+                        <Text style={styles.counterSymbol}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
+
 
         {extraIngredients.length > 0 && (
           <>
-            <Text style={styles.ingredientTitle}>Extra Ingredients</Text>
+            <Text style={styles.ingredientTitle}>
+              {Object.keys(ingredientCounts).length === 0 ? "Ingredients" : "Extra Ingredients"}
+            </Text>
+            <View className="rounded-[10px] overflow-hidden border border-[#FACC15] mb-4 mx-[20px] bg-white/10">
+              <TextInput
+                placeholder="Search ingredient..."
+                placeholderTextColor="#ccc"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                className="text-white px-4 py-3"
+              />
+            </View>
             <View style={{ paddingHorizontal: 20, paddingBottom: 100 }}>
-              {extraIngredients.map((id) => {
+              {extraIngredients.filter((id) => ingredients[id]?.name?.toLowerCase().includes(searchQuery.toLowerCase())).map((id) => {
                 const selectedCount = selectedIds.filter((i) => i === id).length;
                 return (
                   <View key={id} style={styles.checkboxRow}>
