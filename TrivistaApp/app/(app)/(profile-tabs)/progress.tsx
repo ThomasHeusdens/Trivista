@@ -4,27 +4,26 @@
  * Training sessions are fetched from Firestore and charted using `react-native-chart-kit`.
  * @module
  */
-import React, { useState, useEffect } from "react";
-import { 
-  View, 
-  Text, 
-  Pressable, 
-  ImageBackground, 
-  StyleSheet, 
+import { db } from "@/lib/firebase-db";
+import { Picker } from '@react-native-picker/picker';
+import { getAuth } from "firebase/auth";
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
   Dimensions,
-  TouchableOpacity,
-  Modal,
   FlatList,
+  ImageBackground,
+  Modal,
   Platform,
   ScrollView,
-  ActivityIndicator
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
-import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
-import { collection, query, getDocs, orderBy } from 'firebase/firestore';
-import { getAuth } from "firebase/auth";
-import { db } from "@/lib/firebase-db";
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 /**
  * Represents a single user training session record stored in Firestore.
@@ -553,7 +552,7 @@ const styles = StyleSheet.create({
     fontFamily: 'InterRegular',
     textAlign: 'center',
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#B4B4B4',
   },
   filterContainer: {
     marginBottom: 24,

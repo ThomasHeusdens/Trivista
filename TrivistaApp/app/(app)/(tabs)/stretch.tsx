@@ -707,7 +707,7 @@ const Stretch = (): React.JSX.Element => {
 
         {timerActive && currentExercise && (
           <View className="rounded-[10px] overflow-hidden mb-5">
-            <Image source={require("@/assets/images/bicycle.jpg")} style={{ width: "100%", height: 220 }} resizeMode="cover" />
+            <Image source={{ uri: currentExercise.picture }} style={{ width: "100%", height: 220 }} resizeMode="cover" />
             <LinearGradient
               colors={["transparent", "rgba(0,0,0,0.8)"]}
               style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 60, padding: 12 }}
@@ -721,14 +721,16 @@ const Stretch = (): React.JSX.Element => {
         )}
 
         {/* Only show exercises when not completed */}
-        {!timerActive && !stretchingCompleted && filtered.map((s, i) => (
+        {!timerActive && !stretchingCompleted && filtered
+          .sort((a, b) => a.order - b.order)
+          .map((s, i) => (
           <TouchableOpacity 
             key={i} 
             className="flex-row bg-white/20 rounded-[10px] mb-5 overflow-hidden"
             onPress={() => openFullScreenImage(s)}
           >
             <Image
-              source={require("@/assets/images/bicycle.jpg")}
+              source={{ uri: s.picture }}
               style={{ width: 100, minHeight: 100, height: "100%", alignSelf: "stretch", borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }}
               resizeMode="cover"
             />
@@ -741,6 +743,7 @@ const Stretch = (): React.JSX.Element => {
         
         {/* When training is active, show only upcoming exercises */}
         {timerActive && displayedExercises
+          .sort((a, b) => a.order - b.order)
           .filter((_, idx) => idx !== 0) 
           .map((s, i) => (
             <View 
@@ -748,7 +751,7 @@ const Stretch = (): React.JSX.Element => {
               className="flex-row bg-white/20 rounded-[10px] mb-5 overflow-hidden"
             >
               <Image
-                source={require("@/assets/images/bicycle.jpg")}
+                source={{ uri: s.picture }}
                 style={{ width: 100, minHeight: 100, height: "100%", alignSelf: "stretch", borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }}
                 resizeMode="cover"
               />
@@ -823,10 +826,10 @@ const Stretch = (): React.JSX.Element => {
                 </View>
               </TouchableOpacity>
               <Image
-                source={require("@/assets/images/bicycle.jpg")}
+                source={{ uri: selectedExercise.picture }}
                 style={{ 
-                  width: '100%', 
-                  height: screenHeight * 0.6,
+                  width: screenWidth * 0.9, 
+                  height: screenWidth * 0.9,
                   borderRadius: 10 
                 }}
                 resizeMode="cover"
