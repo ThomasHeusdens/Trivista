@@ -12,6 +12,7 @@ export default {
     scheme: "trivistaapp",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
+    backgroundColor: "#1E1E1E",
     splash: {
       image: "./assets/images/logo-trivista.png",
       resizeMode: "contain",
@@ -70,6 +71,10 @@ export default {
           imageWidth: 200,
           resizeMode: "contain",
           backgroundColor: "#1E1E1E",
+          dark: {
+            image: "./assets/images/logo-trivista.png",
+            backgroundColor: "#1E1E1E",
+          },
         },
       ],
       "expo-audio",

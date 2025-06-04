@@ -314,21 +314,22 @@ const Stretch = (): React.JSX.Element => {
   );
 
   /**
-   * Excludes completed exercises from the display, except for the one currently active.
+   * Gets the currently active exercise object by index.
    */
-  const displayedExercises = filtered.filter((_, index) => 
+  const sortedFiltered = filtered.sort((a, b) => a.order - b.order);
+  const currentExercise = sortedFiltered[currentExerciseIndex];
+
+  /**
+   * Excludes completed exercises from the display, except for the one currently active.
+   */  
+  const displayedExercises = sortedFiltered.filter((_, index) => 
     !completedExercises.includes(index) || index === currentExerciseIndex
   );
 
   /**
    * Calculates total session duration in seconds for progress tracking.
    */
-  const totalSessionDuration = filtered.reduce((sum, s) => sum + s.duration, 0);
-
-  /**
-   * Gets the currently active exercise object by index.
-   */
-  const currentExercise = filtered[currentExerciseIndex];
+  const totalSessionDuration = sortedFiltered.reduce((sum, s) => sum + s.duration, 0);
 
   /**
    * Manages global session timer (overall countdown) and sets total time left.
@@ -393,7 +394,7 @@ const Stretch = (): React.JSX.Element => {
           setPausedTimeLeft(0);
           setPausedProgress(0);
 
-          if (currentExerciseIndex + 1 < filtered.length) {
+          if (currentExerciseIndex + 1 < sortedFiltered.length) {
             setCurrentExerciseIndex((i) => i + 1);
             setTimerActive(true);
           } else {
@@ -743,7 +744,6 @@ const Stretch = (): React.JSX.Element => {
         
         {/* When training is active, show only upcoming exercises */}
         {timerActive && displayedExercises
-          .sort((a, b) => a.order - b.order)
           .filter((_, idx) => idx !== 0) 
           .map((s, i) => (
             <View 
@@ -814,7 +814,7 @@ const Stretch = (): React.JSX.Element => {
         animationType="fade"
         onRequestClose={closeFullScreenImage}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center' }}>         
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>         
           {selectedExercise && (
             <View style={{ width: screenWidth * 0.9, alignItems: 'center' }}>
               <TouchableOpacity

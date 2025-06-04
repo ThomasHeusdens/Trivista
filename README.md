@@ -165,6 +165,11 @@ app/
 - **Expo Router Authentication with Protected Routes & Persistent Login**: [https://medium.com/@siddhantshelake/expo-router-authentication-with-protected-routes-persistent-login-eed364e310cc](https://medium.com/@siddhantshelake/expo-router-authentication-with-protected-routes-persistent-login-eed364e310cc)
 - **Handling Protected Routes with Expo Router**: [https://www.reddit.com/r/reactnative/comments/1cf0zyb/how_to_handle_protected_routes_with_expo_router/](https://www.reddit.com/r/reactnative/comments/1cf0zyb/how_to_handle_protected_routes_with_expo_router/)
 
+### Other
+
+- **Calculate RMR**: [https://www.verywellhealth.com/how-many-calories-do-i-need-8417837](https://www.verywellhealth.com/how-many-calories-do-i-need-8417837)
+- **Carbs, proteins and fats split**: [https://www.trainingpeaks.com/blog/is-your-food-fueling-you-the-macronutrient-balance/](https://www.trainingpeaks.com/blog/is-your-food-fueling-you-the-macronutrient-balance/)
+
 ---
 
 ## Author
